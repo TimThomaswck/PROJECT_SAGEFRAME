@@ -7,8 +7,7 @@ for the Sageframe desktop application.
 import os
 from pathlib import Path
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, scoped_session
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, scoped_session, declarative_base
 
 # Get application data directory (configurable via environment variable)
 db_path_env = os.getenv("SAGEFRAME_DB_PATH")
@@ -61,5 +60,7 @@ def init_db():
     # Import all models here to ensure they're registered
     from app.modules.mood_checkin.models import MoodCheckIn
     from app.modules.ai_copilot.models import UserContext, CommunicationEvent
+    from app.modules.projects.models import Project
+    from app.modules.tasks.models import Task
     
     Base.metadata.create_all(bind=engine)
