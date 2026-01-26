@@ -1,0 +1,200 @@
+/* AI Co-Pilot UI Styling
+ * Consistent with Sageframe aesthetic and empathetic design principles
+ */
+
+/* Communication message container */
+#copilotMessageWidget {
+    background-color: #ffffff;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 8px 0px;
+}
+
+/* Greeting message */
+#copilotGreeting {
+    background-color: #f5f9fc;
+    border-left: 4px solid #4a90e2;
+    padding: 12px;
+    border-radius: 4px;
+}
+
+#copilotGreeting QLabel {
+    color: #1a1a1a;
+    font-size: 11pt;
+}
+
+/* Mood response message */
+#copilotMoodResponse {
+    background-color: #fef5f0;
+    border-left: 4px solid #f5a623;
+    padding: 12px;
+    border-radius: 4px;
+}
+
+#copilotMoodResponse QLabel {
+    color: #1a1a1a;
+    font-size: 11pt;
+}
+
+/* Task suggestion message */
+#copilotTaskSuggestion {
+    background-color: #f0f8f4;
+    border-left: 4px solid #7ed321;
+    padding: 12px;
+    border-radius: 4px;
+}
+
+#copilotTaskSuggestion QLabel {
+    color: #1a1a1a;
+    font-size: 11pt;
+}
+
+/* Encouragement message */
+#copilotEncouragement {
+    background-color: #fff5f0;
+    border-left: 4px solid #ff6b6b;
+    padding: 12px;
+    border-radius: 4px;
+}
+
+#copilotEncouragement QLabel {
+    color: #1a1a1a;
+    font-size: 11pt;
+}
+
+/* Gentle reminder message */
+#copilotReminder {
+    background-color: #f9f5e6;
+    border-left: 4px solid #f5a623;
+    padding: 12px;
+    border-radius: 4px;
+}
+
+#copilotReminder QLabel {
+    color: #1a1a1a;
+    font-size: 11pt;
+}
+
+/* Break suggestion message */
+#copilotBreakSuggestion {
+    background-color: #f0f8f4;
+    border-left: 4px solid #50e3c2;
+    padding: 12px;
+    border-radius: 4px;
+}
+
+#copilotBreakSuggestion QLabel {
+    color: #1a1a1a;
+    font-size: 11pt;
+}
+
+/* Message text */
+#copilotMessageText {
+    color: #333333;
+    font-size: 10pt;
+    line-height: 1.4;
+}
+
+/* Message timestamp */
+#copilotTimestamp {
+    color: #999999;
+    font-size: 9pt;
+    font-style: italic;
+}
+
+/* Copilot communication panel */
+#copilotPanel {
+    background-color: #ffffff;
+    border-right: 1px solid #e0e0e0;
+}
+
+/* Message list area */
+#copilotMessageList {
+    background-color: #ffffff;
+    border: none;
+}
+
+/* Minimal tone message (low intrusiveness) */
+#copilotMessageMinimal {
+    opacity: 0.8;
+    font-size: 9pt;
+}
+
+/* Gentle tone message (baseline) */
+#copilotMessageGentle {
+    opacity: 1.0;
+    font-size: 10pt;
+}
+
+/* Encouraging tone message (higher emphasis) */
+#copilotMessageEncouraging {
+    opacity: 1.0;
+    font-size: 11pt;
+    font-weight: bold;
+}
+
+/* Celebratory tone message (celebration) */
+#copilotMessageCelebratory {
+    background-color: #fff9e6;
+    border-left: 4px solid #ffd700;
+    font-size: 11pt;
+    font-weight: bold;
+}
+
+/* Action button styling */
+#copilotActionButton {
+    background-color: #4a90e2;
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 10pt;
+    font-weight: bold;
+}
+
+#copilotActionButton:hover {
+    background-color: #2e5c8a;
+}
+
+#copilotActionButton:pressed {
+    background-color: #1a3a5c;
+}
+
+/* Dismiss button styling */
+#copilotDismissButton {
+    background-color: #f0f0f0;
+    color: #333333;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 10pt;
+}
+
+#copilotDismissButton:hover {
+    background-color: #e0e0e0;
+}
+
+#copilotDismissButton:pressed {
+    background-color: #d0d0d0;
+}
+
+/* Context indicator */
+#copilotContextIndicator {
+    color: #999999;
+    font-size: 9pt;
+    font-style: italic;
+    margin-top: 4px;
+}
+
+/* Accessibility: Focus indicator for keyboard navigation */
+#copilotPanel *:focus {
+    outline: 2px solid #4a90e2;
+    outline-offset: 2px;
+}
+
+/* Hover state for interactive elements */
+#copilotMessageWidget:hover {
+    background-color: #f9f9f9;
+    border: 1px solid #d0d7e0;
+}

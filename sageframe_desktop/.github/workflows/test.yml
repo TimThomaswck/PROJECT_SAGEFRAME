@@ -1,0 +1,41 @@
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'app/**'
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: x64
+            name: linux
+#          - os: windows-latest
+#            arch: x64
+#            name: windows
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: yezz123/setup-uv@v4
+
+      - name: Setup, install dependencies, build
+        run: |
+          uv sync
+          uv run pyside-cli build --stage rc
+          uv run pyside-cli test -- -v --junitxml=report-${{ matrix.name }}-${{ matrix.arch }}.xml
+
+      - uses: dorny/test-reporter@v2
+        with:
+          name: pytest
+          path: "report-*.xml"
+          reporter: jest-junit

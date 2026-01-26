@@ -1,0 +1,79 @@
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+*.egg-info/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Testing
+.pytest_cache/
+.coverage
+.tox/
+htmlcov/
+.hypothesis/
+
+# Node modules
+node_modules/
+package-lock.json
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Temporary files
+*.log
+tmp_app_err.txt
+tmp_app_out.txt
+App.lock
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE specific
+.run/
+.pytest_cache/
+*.code-workspace
+
+# Build artifacts
+sageframe_desktop/build/
+sageframe_desktop/.cache/
