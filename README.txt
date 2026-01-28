@@ -54,32 +54,32 @@ CORE FEATURES (MVP):
 3. Comprehensive Project & Task Management
    - Create, view, edit, and delete projects and tasks
    - Assign properties (priority, complexity, energy level)
-   - Hierarchical tasks with subtasks
+   - Hierarchical tasks with subtasks (planned for future)
    - Multiple visualization options (Kanban, Gantt chart)
-   - Gamified progress tracking (levels & XP)
+   - Gamified progress tracking (levels & XP) (planned for future)
 
 4. Intelligent Calendar Integration
    - Bi-directional sync with Google Calendar
    - Automatic free/busy time identification
-   - Proactive scheduling suggestions for social/professional engagements
-   - Time blocking with calendar push
+   - Proactive scheduling suggestions for social/professional engagements (planned for future)
+   - Time blocking with calendar push (planned for future)
 
 5. Effortless Information Capture
    - Quick-capture inbox for unstructured thoughts
-   - Smart tags (@movie, @book, etc.) for automatic categorization
-   - Automatic content enrichment from external sources
+   - Smart tags (@movie, @book, etc.) for automatic categorization (planned for future)
+   - Automatic content enrichment from external sources (planned for future)
    - Bill/note import with OCR extraction (image/PDF)
    - One-click task creation from extracted information
 
 6. Focus & Well-being Tools
    - Simple habit tracker with daily checkmarks
-   - Pomodoro timer with focus mode
-   - Reminders for overdue/untouched tasks
+   - Pomodoro timer with focus mode (planned for future)
+   - Reminders for overdue/untouched tasks (planned for future)
 
 7. Core UX Features
-   - Keyboard-first navigation with comprehensive shortcuts
+   - Keyboard-first navigation with comprehensive shortcuts (planned for future)
    - Undo functionality for actions
-   - Customizable themes (light/dark mode)
+   - Customizable themes (light/dark mode) (planned for future)
    - Local-first data storage for privacy
    - Tags and smart filters with AND/OR logic
 
@@ -101,11 +101,21 @@ INSTALLATION STEPS:
 1. EXTRACT THE SOURCE CODE
    Extract the zip file to your desired location, for example:
    C:\Users\YourName\Documents\PROJECT_SAGEFRAME
+   
+   After extraction, verify your directory structure looks like this:
+   PROJECT_SAGEFRAME/
+   ├── app/
+   ├── alembic/
+   ├── test_launch.py
+   ├── pyproject.toml
+   └── alembic.ini
+   
+   Note: There should NOT be a nested sageframe_desktop folder inside.
 
 2. SET UP PYTHON ENVIRONMENT
-   Open PowerShell or Command Prompt and navigate to the project directory:
+   Open PowerShell or Command Prompt and navigate to the extracted directory:
    
-   cd C:\path\to\PROJECT_SAGEFRAME\sageframe_desktop
+   cd C:\path\to\PROJECT_SAGEFRAME
 
 3. CREATE A VIRTUAL ENVIRONMENT
    Create and activate a Python virtual environment:
@@ -145,45 +155,46 @@ INSTALLATION STEPS:
 6. INITIALIZE DATABASE
    Set up the local SQLite database and run migrations:
    
-   cd sageframe_desktop
    alembic upgrade head
 
 7. RUN THE APPLICATION
-   Launch SageFrame using the test launcher:
+   Launch SageFrame using the test launcher from the project root:
    
    .venv\Scripts\python.exe test_launch.py
    
    The application window should appear, and you can begin using SageFrame!
 
 
-FIRST-TIME SETUP:
-- On first launch, you'll be guided through initial setup
-- Configure your preferred theme (light/dark mode)
-- Optionally connect your Google Calendar for smart scheduling
-- Explore keyboard shortcuts by pressing '?' in the application
-
+FUNCTIONALITIES
+Mood check-in
+Task management with priority, complexity, and energy level
+Bi-directional Calendar integration 
+Import Documents
+empathetic co-pilot
+Settings to store and update API keys
+Habit tracker
 
 PROJECT STRUCTURE
 ================================================================================
 
-PROJECT_SAGEFRAME/
-├── sageframe_desktop/          # Main application directory
-│   ├── app/                    # Core application code
-│   │   ├── core/               # Core business logic & utilities
-│   │   ├── modules/            # Feature modules (mood, tasks, calendar)
-│   │   ├── ui/                 # PySide6 UI components
-│   │   ├── database.py         # Database configuration
-│   │   └── __main__.py         # Application entry point
-│   ├── alembic/                # Database migration scripts
-│   ├── alembic.ini             # Alembic configuration
-│   ├── pyproject.toml          # Project metadata & dependencies
-│   ├── test_launch.py          # Test launcher script
-│   └── README.md               # Technical documentation
+PROJECT_SAGEFRAME/              # Main application directory (project root)
+├── app/                        # Core application code
+│   ├── core/                   # Core business logic & utilities
+│   ├── modules/                # Feature modules (mood, tasks, calendar)
+│   ├── ui/                     # PySide6 UI components
+│   ├── database.py             # Database configuration
+│   └── __main__.py             # Application entry point
+├── alembic/                    # Database migration scripts
+├── alembic.ini                 # Alembic configuration
+├── pyproject.toml              # Project metadata & dependencies
+├── test_launch.py              # Test launcher script
+├── README.md                   # Technical documentation
 ├── _bmad-output/               # BMAD planning & implementation artifacts
 │   ├── planning-artifacts/     # PRD, Architecture, Epics
 │   └── implementation-artifacts/ # Story implementation details
 ├── docs/                       # Project knowledge base
 ├── .agent/                     # BMAD workflow configurations
+├── GOOGLE_VISION_API_SETUP.md  # Vision API setup guide
 └── README.txt                  # This file
 
 
@@ -266,11 +277,11 @@ DEVELOPMENT TOOLS:
 - Version Control: Git
 
 
-OPTIONAL: GITHUB REPOSITORY
+GITHUB REPOSITORY
 ================================================================================
 
 GitHub Repository: [PLACEHOLDER - TO BE UPDATED]
-https://github.com/yourusername/PROJECT_SAGEFRAME
+https://github.com/TimThomaswck/PROJECT_SAGEFRAME
 
 The repository includes:
 - Complete source code and commit history
@@ -327,7 +338,7 @@ COMMON ISSUES:
 
 2. Database Errors
    Solution: Run database migrations:
-             cd sageframe_desktop
+             cd C:\path\to\PROJECT_SAGEFRAME
              alembic upgrade head
 
 3. Google Calendar Sync Issues
@@ -351,12 +362,6 @@ For questions, issues, or contributions, please refer to the GitHub repository
 or contact the development team.
 
 Project maintained with ❤️ using AI-assisted development methodologies.
-
-
-LICENSE
-================================================================================
-
-[Add your license information here]
 
 
 ================================================================================

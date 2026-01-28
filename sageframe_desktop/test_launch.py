@@ -25,6 +25,28 @@ try:
     print("4. Creating QApplication instance...")
     app = QApplication([])
     
+    # Load Space Grotesk font
+    import os
+    from PySide6.QtGui import QFontDatabase
+    fonts_path = os.path.join(os.path.dirname(__file__), "app", "resources", "fonts")
+    if os.path.exists(fonts_path):
+        for file_name in os.listdir(fonts_path):
+            if file_name.endswith((".ttf", ".otf")):
+                font_file_path = os.path.join(fonts_path, file_name)
+                font_id = QFontDatabase.addApplicationFont(font_file_path)
+                if font_id == -1:
+                    print(f"   ⚠ Failed to load font from {font_file_path}")
+                else:
+                    families = QFontDatabase.applicationFontFamilies(font_id)
+                    print(f"   ✓ Loaded font families: {families}")
+    
+    # Load stylesheet
+    qss_path = os.path.join(os.path.dirname(__file__), "app", "resources", "styles", "main.qss")
+    if os.path.exists(qss_path):
+        with open(qss_path, "r") as f:
+            app.setStyleSheet(f.read())
+        print("   ✓ Stylesheet loaded")
+    
     # Create event loop for async operations
     loop = QEventLoop(app)
     asyncio.set_event_loop(loop)

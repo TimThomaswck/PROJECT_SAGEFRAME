@@ -40,7 +40,7 @@ class DashboardWidget(QWidget):
         
         # If action panel was provided, add it
         if self.action_panel:
-            layout.addWidget(self.action_panel, stretch=1)
+            layout.addWidget(self.action_panel, stretch=3)  # Give more space to action panel
         
         # Add dashboard view
         layout.addWidget(self.dashboard_view, stretch=1)

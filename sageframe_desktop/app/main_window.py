@@ -19,7 +19,6 @@ from app.modules.tasks.gantt_view_model import GanttViewModel
 from app.ui.gantt.gantt_view import GanttChartWidget
 from app.modules.tasks.models import TaskStatus
 from app.modules.gamification.view_models import ProgressViewModel
-from app.ui.gamification.progress_widget import ProgressWidget
 from app.ui.kanban.kanban_board import KanbanBoardWidget
 from app.core.shortcut_manager import ShortcutManager
 from app.core.undo_manager import UndoManager
@@ -87,6 +86,9 @@ class MainWindow(QMainWindow):
         
         # Initialize notes view
         self._initialize_notes_view()
+        
+        # Initialize settings view
+        self._initialize_settings_view()
         
         # Initialize suggestion system
         self._initialize_suggestion_system()
@@ -215,8 +217,59 @@ class MainWindow(QMainWindow):
     
     def _on_action_suggestions(self):
         """Handle Suggestions action button."""
-        # TODO: Phase 5 - Generate and display suggestions in action panel
         self.copilot_action_panel.display_message("✨ Generating personalized suggestions...", "suggestions_loading")
+        
+        # Get available tasks from task service
+        from app.modules.tasks.services import TaskService
+        from app.database import SessionLocal
+        
+        session = SessionLocal()
+        try:
+            task_service = TaskService(session)
+            tasks = task_service.list_tasks(status=TaskStatus.TODO)
+            
+            # Convert tasks to format needed by suggestion service
+            available_tasks = []
+            for task in tasks[:20]:  # Limit to 20 tasks for performance
+                # Handle complexity - could be enum or string
+                difficulty = 'moderate'
+                if hasattr(task, 'complexity') and task.complexity:
+                    difficulty = task.complexity.value if hasattr(task.complexity, 'value') else str(task.complexity)
+                
+                # Handle priority - could be enum or string
+                priority = 'medium'
+                if hasattr(task, 'priority') and task.priority:
+                    priority = task.priority.value if hasattr(task.priority, 'value') else str(task.priority)
+                
+                available_tasks.append({
+                    'id': task.id,
+                    'name': task.title,
+                    'difficulty': difficulty,
+                    'priority': priority,
+                })
+            
+            # Set available tasks for suggestion integration
+            self.mood_suggestion_integration.set_available_tasks(available_tasks)
+            
+            # Generate suggestions using last known mood/energy or defaults
+            self.mood_suggestion_integration.on_mood_checkin_completed(
+                mood=self._last_mood if hasattr(self, '_last_mood') else "neutral",
+                energy_level=self._last_energy if hasattr(self, '_last_energy') else "medium",
+            )
+            
+            # If no tasks, show message
+            if not available_tasks:
+                self.copilot_action_panel.display_message(
+                    "📝 No tasks available for suggestions. Create some tasks first!",
+                    "no_tasks"
+                )
+        except Exception as e:
+            self.copilot_action_panel.display_message(
+                f"❌ Error generating suggestions: {str(e)}",
+                "suggestions_error"
+            )
+        finally:
+            session.close()
     
     def _on_action_progress(self):
         """Handle Progress action button."""
@@ -397,17 +450,14 @@ class MainWindow(QMainWindow):
 
     def _initialize_gamification(self):
         """Set up gamification progress view."""
-        self.progress_view_model = ProgressViewModel(parent=self)
-        self.progress_widget = ProgressWidget(self.progress_view_model, parent=self)
-        self.progress_view_model.levelUp.connect(self._on_level_up)
-
-        # Embed old progress widget in content area
-        self.content_area.set_widget_for_section("progress", self.progress_widget)
-        self._last_known_level = self.progress_view_model.get_cached().get("current_level", 1)
+        # Use new enhanced progress view with animations and achievements
+        self.progress_view = ProgressView(parent=self)
+        self.content_area.set_widget_for_section("progress", self.progress_view)
         
-        # Also create new progress view (placeholder)
-        # self.progress_view = ProgressView(parent=self)
-        # self.content_area.set_widget_for_section("progress", self.progress_view)
+        # Keep view model for other uses
+        self.progress_view_model = ProgressViewModel(parent=self)
+        self.progress_view_model.levelUp.connect(self._on_level_up)
+        self._last_known_level = self.progress_view_model.get_cached().get("current_level", 1)
 
     def _initialize_habit_tracker(self):
         """Set up habit tracker view."""
@@ -437,6 +487,22 @@ class MainWindow(QMainWindow):
         
         # Set notes view in content area
         self.content_area.set_widget_for_section("notes", self.notes_view)
+    
+    def _initialize_settings_view(self):
+        """Set up settings view with API keys configuration."""
+        from app.ui.settings.settings_view import SettingsView
+        
+        # Create settings view with enrichment service for API key management
+        self.settings_view = SettingsView(
+            enrichment_service=getattr(self, "enrichment_service", None),
+            parent=self
+        )
+        
+        # Connect signal to refresh greeting when settings are saved
+        self.settings_view.settingsSaved.connect(self._on_api_settings_saved)
+        
+        # Set settings view in content area
+        self.content_area.set_widget_for_section("settings", self.settings_view)
 
     def _initialize_copilot(self):
         """Initialize the AI Co-Pilot communication system."""
@@ -500,98 +566,25 @@ class MainWindow(QMainWindow):
         
         Addresses AC3 requirement: UI elements reflect undo/redo availability.
         """
-        # Create Edit menu
-        edit_menu = self.menuBar().addMenu(self.tr("Edit"))
+        # Completely disable menu bar - users should use dashboard and navigation only
+        menu_bar = self.menuBar()
+        menu_bar.setVisible(False)
+        menu_bar.setMaximumHeight(0)
+        menu_bar.setEnabled(False)
+        menu_bar.setNativeMenuBar(False)  # Disable native menu bar on macOS/Windows
         
-        # Create Undo action
+        # Create undo/redo actions for shortcuts (no UI display)
         self.undo_action = QAction(self.tr("Undo"), self)
         self.undo_action.setShortcut(QKeySequence.StandardKey.Undo)
-        self.undo_action.setStatusTip(self.tr("Undo the last action"))
         self.undo_action.triggered.connect(self._undo)
         self.undo_action.setEnabled(False)
-        edit_menu.addAction(self.undo_action)
+        self.addAction(self.undo_action)  # Add to window for shortcut to work
         
-        # Create Redo action
         self.redo_action = QAction(self.tr("Redo"), self)
         self.redo_action.setShortcut(QKeySequence.StandardKey.Redo)
-        self.redo_action.setStatusTip(self.tr("Redo the last undone action"))
         self.redo_action.triggered.connect(self._redo)
         self.redo_action.setEnabled(False)
-        edit_menu.addAction(self.redo_action)
-        
-        # Create Projects menu
-        projects_menu = self.menuBar().addMenu(self.tr("Projects"))
-        
-        # New Project action
-        new_project_action = QAction(self.tr("New Project..."), self)
-        new_project_action.setShortcut(QKeySequence("Ctrl+N"))
-        new_project_action.setStatusTip(self.tr("Create a new project"))
-        new_project_action.triggered.connect(self._open_create_project_dialog)
-        projects_menu.addAction(new_project_action)
-        
-        projects_menu.addSeparator()
-        
-        # Toggle Project Panel action
-        toggle_projects_action = QAction(self.tr("Show/Hide Projects Panel"), self)
-        toggle_projects_action.triggered.connect(self._toggle_project_panel)
-        projects_menu.addAction(toggle_projects_action)
-        
-        # Create Tasks menu
-        tasks_menu = self.menuBar().addMenu(self.tr("Tasks"))
-        
-        # New Task action
-        new_task_action = QAction(self.tr("New Task..."), self)
-        new_task_action.setShortcut(QKeySequence("Ctrl+T"))
-        new_task_action.setStatusTip(self.tr("Create a new task"))
-        new_task_action.triggered.connect(self._open_create_task_dialog)
-        tasks_menu.addAction(new_task_action)
-        
-        tasks_menu.addSeparator()
-        
-        # Toggle Task Panel action
-        toggle_tasks_action = QAction(self.tr("Show/Hide Tasks Panel"), self)
-        toggle_tasks_action.triggered.connect(self._toggle_task_panel)
-        tasks_menu.addAction(toggle_tasks_action)
-
-        # Toggle Kanban action
-        toggle_kanban_action = QAction(self.tr("Show/Hide Kanban Board"), self)
-        toggle_kanban_action.triggered.connect(self._toggle_kanban_panel)
-        tasks_menu.addAction(toggle_kanban_action)
-
-        # Toggle Gantt action
-        toggle_gantt_action = QAction(self.tr("Show/Hide Gantt Chart"), self)
-        toggle_gantt_action.triggered.connect(self._toggle_gantt_panel)
-        tasks_menu.addAction(toggle_gantt_action)
-        
-        # Create Habits menu
-        habits_menu = self.menuBar().addMenu(self.tr("Habits"))
-        
-        # Toggle Habits Panel action
-        toggle_habits_action = QAction(self.tr("Show/Hide Habits Panel"), self)
-        toggle_habits_action.triggered.connect(self._toggle_habit_panel)
-        habits_menu.addAction(toggle_habits_action)
-        
-        # Create File menu
-        file_menu = self.menuBar().addMenu(self.tr("File"))
-        import_action = QAction(self.tr("Import Document..."), self)
-        import_action.setStatusTip(self.tr("Import a PDF/Image and extract information"))
-        import_action.triggered.connect(self._open_import_dialog)
-        file_menu.addAction(import_action)
-        # Create toolbar
-        toolbar = self.addToolBar(self.tr("Edit"))
-        toolbar.setObjectName("EditToolBar")
-        toolbar.addAction(self.undo_action)
-        toolbar.addAction(self.redo_action)
-        toolbar.addSeparator()
-        toolbar.addAction(new_project_action)
-        toolbar.addAction(new_task_action)
-
-        # Create Settings menu
-        settings_menu = self.menuBar().addMenu(self.tr("Settings"))
-        api_keys_action = QAction(self.tr("API Keys..."), self)
-        api_keys_action.setStatusTip(self.tr("Configure API keys for integrations"))
-        api_keys_action.triggered.connect(self._open_api_keys_dialog)
-        settings_menu.addAction(api_keys_action)
+        self.addAction(self.redo_action)  # Add to window for shortcut to work
     
     def _undo(self) -> None:
         """Execute undo action."""
@@ -643,14 +636,47 @@ class MainWindow(QMainWindow):
         Args:
             suggestions: List of suggestion dictionaries with messages
         """
-        # Generate suggestions through the view model
-        self.suggestion_view_model.generate_suggestions(
-            mood=suggestions[0].get("mood_context", "neutral"),
-            energy_level=suggestions[0].get("energy_context", "medium"),
-            available_tasks=[],  # Tasks already used for generation
-        )
-        self._last_mood = suggestions[0].get("mood_context", "neutral")
-        self._last_energy = suggestions[0].get("energy_context", "medium")
+        if not suggestions:
+            self.copilot_action_panel.display_message(
+                "💡 No relevant suggestions at this time.",
+                "no_suggestions"
+            )
+            return
+        
+        # Check if these are generic fallback suggestions
+        is_generic = suggestions[0].get("is_generic", False) if suggestions else False
+        
+        # Format suggestions for display
+        if is_generic:
+            message = "💡 **Productivity Tips & Motivation:**\n\n"
+            message += "_AI suggestions temporarily unavailable. Here are some helpful tips:_\n\n"
+        else:
+            message = "💡 **Personalized Task Suggestions:**\n\n"
+        
+        for idx, suggestion in enumerate(suggestions, 1):
+            task_name = suggestion.get("task_name", "Unknown Task")
+            reasoning = suggestion.get("reasoning", "")
+            copilot_msg = suggestion.get("copilot_message", reasoning)
+            
+            if is_generic:
+                message += f"{copilot_msg}\n\n"
+            else:
+                message += f"**{idx}. {task_name}**\n"
+                message += f"   {copilot_msg}\n\n"
+        
+        # Add footer message based on suggestion type
+        if is_generic:
+            message += "\n💭 _Complete a **Mood Check-In** (😊 button) for personalized task suggestions based on your current state._"
+        else:
+            message += "\n_Based on your current mood and energy level._"
+        
+        # Display in copilot action panel
+        self.copilot_action_panel.display_message(message, "suggestions_ready")
+        
+        # Update last known mood/energy if available
+        if suggestions:
+            self._last_mood = suggestions[0].get("mood_context", "neutral")
+            self._last_energy = suggestions[0].get("energy_context", "medium")
     
     def _add_mood_checkin_button(self):
         """Add mood check-in button to the main window."""
@@ -1633,11 +1659,9 @@ class MainWindow(QMainWindow):
 
     def _on_level_up(self, level: int):
         """Handle level-up events from the progress view model."""
-        if hasattr(self, "progress_widget"):
-            self.progress_widget.show_level_up(level)
         # Lightweight notification in the status bar
         if self.statusBar():
-            self.statusBar().showMessage(self.tr(f"Level up! Reached level {level}."), 5000)
+            self.statusBar().showMessage(self.tr(f"🎉 Level up! Reached level {level}."), 5000)
 
     def _toggle_gantt_panel(self):
         """Switch to Gantt view."""
