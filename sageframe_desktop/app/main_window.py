@@ -1260,9 +1260,20 @@ class MainWindow(QMainWindow):
             task_id = item.data(Qt.ItemDataRole.UserRole)
             if task_id:
                 from app.modules.tasks.views import TaskViewWidget
-                task_view = TaskViewWidget(view_model=self.task_view_model, parent=dialog)
+                from PySide6.QtWidgets import QDialog, QVBoxLayout
+                
+                # Create a dialog to contain the task view
+                task_dialog = QDialog(dialog)
+                task_dialog.setWindowTitle(self.tr("Task Details"))
+                task_dialog.setMinimumSize(600, 500)
+                
+                task_layout = QVBoxLayout()
+                task_view = TaskViewWidget(view_model=self.task_view_model, parent=task_dialog)
                 task_view.set_task_id(task_id)
-                task_view.show()
+                task_layout.addWidget(task_view)
+                
+                task_dialog.setLayout(task_layout)
+                task_dialog.exec()
         
         tasks_list.itemDoubleClicked.connect(open_task_view)
         layout.addWidget(tasks_list)
@@ -1557,10 +1568,19 @@ class MainWindow(QMainWindow):
         """Handle task list item double-click (AC#2)."""
         task_id = item.data(Qt.ItemDataRole.UserRole)
         if task_id:
-            # Open task view widget
-            view_widget = TaskViewWidget(view_model=self.task_view_model, parent=self)
+            # Open task view widget in a dialog
+            from PySide6.QtWidgets import QDialog, QVBoxLayout
+            task_dialog = QDialog(self)
+            task_dialog.setWindowTitle(self.tr("Task Details"))
+            task_dialog.setMinimumSize(600, 500)
+            
+            task_layout = QVBoxLayout()
+            view_widget = TaskViewWidget(view_model=self.task_view_model, parent=task_dialog)
             view_widget.set_task_id(task_id)
-            view_widget.show()
+            task_layout.addWidget(view_widget)
+            
+            task_dialog.setLayout(task_layout)
+            task_dialog.exec()
     
     def _on_task_created(self, task_id: int, title: str):
         """Handle task created signal (AC#1)."""
@@ -1576,9 +1596,19 @@ class MainWindow(QMainWindow):
         task_id = item.data(Qt.ItemDataRole.UserRole)
         if not task_id:
             return
-        view_widget = TaskViewWidget(view_model=self.task_view_model, parent=self)
+        # Open task view widget in a dialog
+        from PySide6.QtWidgets import QDialog, QVBoxLayout
+        task_dialog = QDialog(self)
+        task_dialog.setWindowTitle(self.tr("Task Details"))
+        task_dialog.setMinimumSize(600, 500)
+        
+        task_layout = QVBoxLayout()
+        view_widget = TaskViewWidget(view_model=self.task_view_model, parent=task_dialog)
         view_widget.set_task_id(task_id)
-        view_widget.show()
+        task_layout.addWidget(view_widget)
+        
+        task_dialog.setLayout(task_layout)
+        task_dialog.exec()
 
     def _mark_task_done(self, task_id: int):
         """Mark a task as done and refresh views."""
