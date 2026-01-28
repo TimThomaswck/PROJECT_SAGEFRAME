@@ -16,7 +16,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 
 from app.database import Base
-from app.modules.tasks.models import Task, TaskPriority, TaskComplexity
+from app.modules.tasks.models import Task, TaskPriority, TaskComplexity, TaskDependencyType
 from app.modules.tasks.services import TaskService
 from app.modules.projects.models import Project
 
@@ -85,7 +85,11 @@ class TestTaskServiceCreate:
             due_date=due,
             status="in_progress",
             project_id=project.id,
-            user_id=1
+            user_id=1,
+            start_date=due - timedelta(days=3),
+            end_date=due + timedelta(days=1),
+            depends_on_task_id=None,
+            dependency_type=TaskDependencyType.FINISH_TO_START,
         )
         
         assert task.title == "Full Task"
@@ -94,6 +98,10 @@ class TestTaskServiceCreate:
         assert task.status == "in_progress"
         assert task.project_id == project.id
         assert task.user_id == 1
+        assert task.start_date == due - timedelta(days=3)
+        assert task.end_date == due + timedelta(days=1)
+        assert task.depends_on_task_id is None
+        assert task.dependency_type == TaskDependencyType.FINISH_TO_START.value
     
     def test_create_task_title_whitespace_stripped(self, task_service):
         """Test that title whitespace is stripped."""
@@ -114,6 +122,13 @@ class TestTaskServiceCreate:
         """Test that invalid status raises error."""
         with pytest.raises(ValueError):
             task_service.create_task(title="Task", status="invalid")
+
+    def test_create_task_invalid_dates_fails(self, task_service):
+        """Start after end should fail validation."""
+        start = datetime.now(timezone.utc)
+        end = start - timedelta(days=1)
+        with pytest.raises(ValueError):
+            task_service.create_task(title="Bad", start_date=start, end_date=end)
     
     def test_create_standalone_task(self, task_service):
         """Test creating task without project association."""
@@ -316,6 +331,35 @@ class TestTaskServiceUpdate:
         assert updated.description == "Keep this"
         assert updated.status == "todo"
         assert updated.project_id == project.id
+
+    def test_update_task_dates_and_dependency(self, task_service, project):
+        """Updating timelines and dependency type should persist."""
+        start = datetime.now(timezone.utc)
+        end = start + timedelta(days=2)
+        task = task_service.create_task(title="Timeline", project_id=project.id, start_date=start, end_date=end)
+
+        new_start = start + timedelta(days=1)
+        new_end = end + timedelta(days=1)
+        updated = task_service.update_task(
+            task.id,
+            start_date=new_start,
+            end_date=new_end,
+            depends_on_task_id=None,
+            dependency_type=TaskDependencyType.START_TO_START,
+        )
+
+        assert updated.start_date == new_start
+        assert updated.end_date == new_end
+        assert updated.dependency_type == TaskDependencyType.START_TO_START.value
+
+    def test_update_task_invalid_dates_raise(self, task_service, project):
+        """Start after end on update should raise validation error."""
+        start = datetime.now(timezone.utc)
+        end = start + timedelta(days=1)
+        task = task_service.create_task(title="Timeline", project_id=project.id, start_date=start, end_date=end)
+
+        with pytest.raises(ValueError):
+            task_service.update_task(task.id, start_date=end, end_date=start)
 
 
 class TestTaskServiceDelete:

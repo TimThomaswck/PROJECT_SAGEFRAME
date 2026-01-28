@@ -3,6 +3,9 @@ Core AI Co-Pilot Communication Service.
 
 Manages message generation, tone validation, context awareness,
 and delivery preferences.
+
+Now with Google Gemini LLM integration for AI-powered responses.
+Falls back to templates if LLM is unavailable.
 """
 
 import uuid
@@ -23,6 +26,10 @@ from app.modules.ai_copilot.persona import (
     JARVIS,
     MessageCategory,
     ToneLevel,
+)
+from app.modules.ai_copilot.gemini_integration import (
+    generate_with_gemini,
+    is_gemini_configured,
 )
 
 
@@ -51,10 +58,11 @@ class CopilotCommunicationService:
         """
         self.db = db_session
         self.message_queue: List[str] = []  # message_id queue
+        self.use_llm = is_gemini_configured()  # Check if Gemini is available
     
     def generate_greeting(self, tone_level: ToneLevel = ToneLevel.GENTLE) -> str:
         """
-        Generate a greeting message.
+        Generate a greeting message using LLM if available, else templates.
         
         Args:
             tone_level: Intensity of the greeting tone.
@@ -62,10 +70,211 @@ class CopilotCommunicationService:
         Returns:
             A greeting message.
         """
+        if self.use_llm:
+            prompt = "Generate a warm, welcoming greeting for a task management application user. Keep it to 1-2 sentences. Be brief and friendly."
+            llm_response = generate_with_gemini(
+                prompt=prompt,
+                system_prompt=JARVIS.get_system_prompt(),
+            )
+            if llm_response:
+                return llm_response
+        
+        # Fallback to templates
         templates = JARVIS.get_templates_for_category(MessageCategory.GREETING)
         if not templates:
             return "Hello! I'm here to help."
         return random.choice(templates)
+    
+    def generate_personalized_greeting(self, user_time_of_day: str = "morning") -> str:
+        """
+        Generate a personalized greeting with task context (LLM-powered).
+        
+        Args:
+            user_time_of_day: "morning", "afternoon", or "evening"
+            
+        Returns:
+            Personalized greeting message
+        """
+        if not self.use_llm:
+            # Fallback message
+            greetings = {
+                "morning": "Good morning! Ready to make today great?",
+                "afternoon": "Good afternoon! Keep up the momentum!",
+                "evening": "Good evening! Let's wrap up strong!",
+            }
+            return greetings.get(user_time_of_day, "Welcome back!")
+        
+        # Get task summary for context
+        try:
+            # Could query task count here if needed
+            task_context = "You have tasks waiting for you"
+        except:
+            task_context = ""
+        
+        time_map = {
+            "morning": "Good morning",
+            "afternoon": "Good afternoon",
+            "evening": "Good evening",
+        }
+        greeting_time = time_map.get(user_time_of_day, "Hello")
+        
+        prompt = f"""{greeting_time}! {task_context}. 
+        
+    In 1-2 brief, warm sentences, welcome the user to their task management dashboard. 
+    IMPORTANT: Your greeting MUST end with the question "How are you feeling?" - this exact phrase is required for the interactive UI.
+    Be conversational, supportive, and always close with that specific question."""
+        
+        llm_response = generate_with_gemini(
+            prompt=prompt,
+            system_prompt=JARVIS.get_system_prompt(),
+        )
+        
+        if llm_response:
+            return llm_response
+        
+        # Fallback
+        return f"{greeting_time}! Let's make today productive. How are you feeling?"
+
+    def select_tasks_for_action(self, action: str, mood: str, energy_level: str, tasks_snapshot: list[dict]) -> dict:
+        """Use LLM to intelligently select which tasks to act upon based on user state.
+        
+        Args:
+            action: 'mark_today' or 'snooze'
+            mood: User mood label
+            energy_level: User energy level
+            tasks_snapshot: List of task dicts with id, title, status, due_date, priority, effort
+        Returns:
+            Dict with 'task_ids', 'defer_days' (for snooze), 'reason'
+        """
+        if not self.use_llm:
+            # Fallback: simple heuristic selection
+            if action == 'mark_today':
+                # Select up to 3 high-priority or due-soon tasks
+                selected = [t['id'] for t in tasks_snapshot[:3] if t.get('priority') in ['high', 'medium']]
+                return {'task_ids': selected[:3], 'reason': 'Selected high-priority tasks for today'}
+            else:  # snooze
+                # Select low-priority tasks
+                selected = [t['id'] for t in tasks_snapshot if t.get('priority') == 'low'][:2]
+                return {'task_ids': selected, 'defer_days': 2, 'reason': 'Deferred low-priority tasks'}
+        
+        # Build task context for LLM
+        tasks_text = "\n".join(
+            f"ID {t.get('id')}: {t.get('title','')} | priority: {t.get('priority','?')}, due: {t.get('due_date','?')}, effort: {t.get('effort','?')}"
+            for t in tasks_snapshot
+        ) or "(no tasks)"
+        
+        action_prompts = {
+            'mark_today': f"""User mood: {mood}, energy: {energy_level}
+Tasks:
+{tasks_text}
+
+Select 2-3 tasks to mark for today that match the user's energy and are important. Return ONLY valid JSON:
+{{"task_ids": [1, 2], "reason": "brief explanation"}}""",
+            'snooze': f"""User mood: {mood}, energy: {energy_level}
+Tasks:
+{tasks_text}
+
+Select 1-2 tasks to defer that don't match current energy or are low-priority. Return ONLY valid JSON:
+{{"task_ids": [3], "defer_days": 2, "reason": "brief explanation"}}"""
+        }
+        
+        prompt = action_prompts.get(action, '')
+        if not prompt:
+            return {'task_ids': [], 'reason': 'Invalid action'}
+        
+        llm_response = generate_with_gemini(
+            prompt=prompt,
+            system_prompt=JARVIS.get_system_prompt(),
+        )
+        
+        if llm_response:
+            try:
+                import json
+                # Extract JSON from response (handle markdown code blocks)
+                json_str = llm_response.strip()
+                if '```' in json_str:
+                    json_str = json_str.split('```')[1]
+                    if json_str.startswith('json'):
+                        json_str = json_str[4:]
+                result = json.loads(json_str.strip())
+                return result
+            except Exception as e:
+                print(f"Warning: Could not parse LLM task selection: {e}")
+        
+        # Fallback if LLM fails
+        if action == 'mark_today':
+            return {'task_ids': [tasks_snapshot[0]['id']] if tasks_snapshot else [], 'reason': 'Selected first available task'}
+        return {'task_ids': [], 'defer_days': 2, 'reason': 'No tasks to defer'}
+
+    def generate_task_prioritization(self, mood: str, energy_level: str, tasks_snapshot: list[dict]) -> str:
+        """Generate recommendations on what to prioritize or postpone based on mood/energy and tasks.
+
+        Args:
+            mood: User mood label
+            energy_level: User energy level
+            tasks_snapshot: List of task dicts with keys: title, status, due_date, priority, effort
+        Returns:
+            Recommendation text
+        """
+
+        # Build compact tasks summary
+        def fmt_task(t):
+            return f"- {t.get('title','(untitled)')} | status: {t.get('status','?')}, priority: {t.get('priority','?')}, due: {t.get('due_date','?')}, effort: {t.get('effort','?')}"
+
+        tasks_text = "\n".join(fmt_task(t) for t in tasks_snapshot[:6]) or "(no tasks provided)"
+
+        prompt = f"""
+You are an empathetic assistant. The user reported mood="{mood}", energy="{energy_level}".
+Here is a snapshot of their tasks (title, status, priority, due, effort):
+{tasks_text}
+
+In 3-5 sentences, recommend:
+1) Top 3 tasks to start now (aligned to current energy).
+2) 1-2 tasks to postpone or lighten.
+Be concise, encouraging, and specific. Do not invent tasks.
+"""
+
+        if self.use_llm:
+            llm_response = generate_with_gemini(
+                prompt=prompt,
+                system_prompt=JARVIS.get_system_prompt(),
+            )
+            if llm_response:
+                return llm_response
+
+        # Fallback template
+        return (
+            "Based on your current energy, pick 1-2 small tasks and one medium priority item. "
+            "Postpone high-effort items until energy rebounds, and reschedule anything due later this week."
+        )
+    
+    def get_api_key_status_message(self, time_of_day: str = "day", task_count: int = 0) -> str:
+        """
+        Get a message about API key status with personalized greeting.
+        
+        Args:
+            time_of_day: Time of day (morning, afternoon, evening)
+            task_count: Number of tasks for today
+            
+        Returns:
+            Message indicating whether Gemini API is configured
+        """
+        if not is_gemini_configured():
+            return f"""Good {time_of_day}, sir! 👋
+
+You have {task_count} task{'s' if task_count != 1 else ''} for today. How are you feeling?
+
+🔑 To unlock AI-powered assistance and personalized suggestions, please add your Google Generative AI (Gemini) API key in Settings → API Keys.
+
+👉 Go to Settings → API Keys to configure your Gemini API key.
+
+Once configured, I'll be able to provide intelligent insights and guide you through your day with empathetic support!"""
+        
+        return f"""Good {time_of_day}, sir! ✨
+
+You have {task_count} task{'s' if task_count != 1 else ''} for today. How are you feeling?
+
+I'm here to help you stay focused, productive, and well. Let me know if you need any assistance!"""
     
     def generate_mood_response(
         self,
@@ -74,7 +283,7 @@ class CopilotCommunicationService:
         tone_level: ToneLevel = ToneLevel.GENTLE,
     ) -> str:
         """
-        Generate an empathetic response based on user's mood and energy.
+        Generate an empathetic response based on user's mood and energy (LLM-powered).
         
         Args:
             mood: User's reported mood (high_energy, low_energy, stressed, focused).
@@ -84,11 +293,33 @@ class CopilotCommunicationService:
         Returns:
             A mood-appropriate response.
         """
+        if self.use_llm:
+            # LLM-powered mood response
+            prompt = f"""The user has reported their mood as '{mood}' with an energy level of {energy_level}/10.
+            
+Generate a brief (1-2 sentences), warm, and empathetic response that:
+1. Acknowledges their mood and energy level
+2. Offers gentle encouragement or support appropriate to their state
+3. Suggests they might want to check their mood or adjust their activities accordingly
+
+Keep the tone supportive, never judgmental. Be concise and actionable."""
+            
+            llm_response = generate_with_gemini(
+                prompt=prompt,
+                system_prompt=JARVIS.get_system_prompt(),
+            )
+            
+            if llm_response:
+                # Validate tone compliance
+                is_valid, _ = self.validate_message_tone(llm_response)
+                if is_valid:
+                    return llm_response
+        
+        # Fallback to templates
         templates = JARVIS.get_templates_for_category(MessageCategory.MOOD_RESPONSE)
         if not templates:
             return "I'm here for you."
         
-        # In MVP, simple random selection. Future LLM could generate contextual responses.
         return random.choice(templates)
     
     def generate_task_suggestion(
@@ -382,31 +613,36 @@ class CopilotCommunicationService:
         Returns:
             True if message should be deferred, False if safe to deliver.
         """
-        context = self.get_user_context()
-        if not context:
-            return False
-        
-        # Never interrupt flow state
-        if context.activity_state == UserActivityState.FLOW_STATE:
-            return True
-        
-        # Never interrupt focus mode
-        if context.is_in_focus_mode:
-            return True
-        
-        # Respect Do Not Disturb until time
-        if context.do_not_disturb_until:
-            now = datetime.now(timezone.utc)
-            dnd_until = context.do_not_disturb_until
+        try:
+            context = self.get_user_context()
+            if not context:
+                return False
             
-            # Handle SQLite storing naive datetimes
-            if dnd_until.tzinfo is None:
-                now = now.replace(tzinfo=None)
-            
-            if now < dnd_until:
+            # Never interrupt flow state
+            if context.activity_state == UserActivityState.FLOW_STATE:
                 return True
-        
-        return False
+            
+            # Never interrupt focus mode
+            if context.is_in_focus_mode:
+                return True
+            
+            # Respect Do Not Disturb until time
+            if context.do_not_disturb_until:
+                now = datetime.now(timezone.utc)
+                dnd_until = context.do_not_disturb_until
+                
+                # Handle SQLite storing naive datetimes
+                if dnd_until.tzinfo is None:
+                    now = now.replace(tzinfo=None)
+                
+                if now < dnd_until:
+                    return True
+            
+            return False
+        except Exception as e:
+            # If we can't determine context, don't defer (safe to show)
+            print(f"Warning: Could not check defer status: {e}")
+            return False
     
     def set_do_not_disturb(self, duration_minutes: int) -> None:
         """
@@ -499,3 +735,45 @@ class CopilotCommunicationService:
         }
         
         return preferences
+
+    def generate_and_store_message(
+        self,
+        message_text: str,
+        category: str,
+        user_mood: Optional[str] = None,
+        energy_level: Optional[int] = None,
+    ) -> Optional[str]:
+        """
+        Generate, validate, and store a communication event.
+        
+        Args:
+            message_text: The message to store
+            category: Message category (mood_response, greeting, encouragement, etc.)
+            user_mood: User's reported mood (optional)
+            energy_level: User's energy level 1-10 (optional)
+            
+        Returns:
+            Message ID if successful, None if validation failed
+        """
+        import uuid
+        
+        # Validate tone compliance
+        is_valid, _ = self.validate_message_tone(message_text)
+        if not is_valid:
+            return None
+        
+        # Create communication event
+        msg_id = str(uuid.uuid4())
+        
+        try:
+            event = self.save_communication_event(
+                message_id=msg_id,
+                message_text=message_text,
+                category=category,
+                user_mood=user_mood,
+                user_energy_level=energy_level,
+            )
+            return msg_id
+        except Exception as e:
+            print(f"Error storing message: {e}")
+            return None

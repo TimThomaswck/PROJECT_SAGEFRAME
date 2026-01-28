@@ -9,10 +9,11 @@ from datetime import datetime, timezone
 from typing import Optional, List, Union
 
 from pydantic import ValidationError
+from sqlalchemy.orm.exc import DetachedInstanceError
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
-from app.modules.tasks.models import Task, TaskSchema, TaskUpdateSchema, TaskPriority, TaskComplexity, TaskStatus
+from app.modules.tasks.models import Task, TaskSchema, TaskUpdateSchema, TaskPriority, TaskComplexity, TaskStatus, TaskDependencyType
 
 
 class TaskService:
@@ -32,6 +33,26 @@ class TaskService:
         self._owns_session = session is None
         if self._owns_session:
             self._session = SessionLocal()
+    
+    @staticmethod
+    def _ensure_timezone(dt: Optional[datetime]) -> Optional[datetime]:
+        """Force naive datetimes to UTC-aware for consistent storage."""
+        if dt is None:
+            return None
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt
+
+    @staticmethod
+    def _normalize_task_timezone(task: Task) -> Task:
+        """Ensure task datetime fields carry tzinfo when loaded from SQLite."""
+        if getattr(task, "start_date", None) is not None and task.start_date.tzinfo is None:
+            task.start_date = task.start_date.replace(tzinfo=timezone.utc)
+        if getattr(task, "end_date", None) is not None and task.end_date.tzinfo is None:
+            task.end_date = task.end_date.replace(tzinfo=timezone.utc)
+        if getattr(task, "due_date", None) is not None and task.due_date.tzinfo is None:
+            task.due_date = task.due_date.replace(tzinfo=timezone.utc)
+        return task
     
     def __enter__(self):
         """Context manager entry."""
@@ -59,12 +80,16 @@ class TaskService:
         title: str,
         description: Optional[str] = None,
         due_date: Optional[datetime] = None,
-        status: Union[TaskStatus, str] = "todo",
-        priority: Union[TaskPriority, str] = "medium",
-        complexity: Union[TaskComplexity, str] = "moderate",
+        status: Union[TaskStatus, str] = TaskStatus.TODO,
+        priority: Union[TaskPriority, str] = TaskPriority.MEDIUM,
+        complexity: Union[TaskComplexity, str] = TaskComplexity.MODERATE,
         project_id: Optional[int] = None,
         user_id: Optional[int] = None,
-        id: Optional[int] = None
+        id: Optional[int] = None,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        depends_on_task_id: Optional[int] = None,
+        dependency_type: Optional[Union[TaskDependencyType, str]] = None,
     ) -> Task:
         """Create a new task.
         
@@ -90,22 +115,30 @@ class TaskService:
             validated = TaskSchema(
                 title=title,
                 description=description,
-                due_date=due_date,
+                due_date=self._ensure_timezone(due_date),
                 status=status,
                 priority=priority,
                 complexity=complexity,
-                project_id=project_id
+                project_id=project_id,
+                start_date=self._ensure_timezone(start_date),
+                end_date=self._ensure_timezone(end_date),
+                depends_on_task_id=depends_on_task_id,
+                dependency_type=dependency_type,
             )
             
-            # Create task with validated data
+            # Create task with validated data, ensuring enum values are stored as strings
             task = Task(
                 title=validated.title,
                 description=validated.description,
                 due_date=validated.due_date,
-                status=validated.status,
-                priority=validated.priority,
-                complexity=validated.complexity,
+                status=validated.status.value if isinstance(validated.status, TaskStatus) else validated.status,
+                priority=validated.priority.value if isinstance(validated.priority, TaskPriority) else validated.priority,
+                complexity=validated.complexity.value if isinstance(validated.complexity, TaskComplexity) else validated.complexity,
                 project_id=validated.project_id,
+                start_date=validated.start_date,
+                end_date=validated.end_date,
+                depends_on_task_id=validated.depends_on_task_id,
+                dependency_type=validated.dependency_type.value if isinstance(validated.dependency_type, TaskDependencyType) else validated.dependency_type,
                 user_id=user_id,
                 created_at=datetime.now(timezone.utc),
                 updated_at=datetime.now(timezone.utc)
@@ -117,8 +150,12 @@ class TaskService:
             
             self.session.add(task)
             self.session.commit()
-            self.session.refresh(task)
-            return task
+            try:
+                self.session.refresh(task)
+            except DetachedInstanceError:
+                # If the instance was detached, re-merge to keep return value usable
+                task = self.session.merge(task)
+            return self._normalize_task_timezone(task)
             
         except ValidationError as e:
             self.session.rollback()
@@ -136,7 +173,8 @@ class TaskService:
         Returns:
             Task object if found, None otherwise
         """
-        return self.session.query(Task).filter(Task.id == task_id).first()
+        task = self.session.query(Task).filter(Task.id == task_id).first()
+        return self._normalize_task_timezone(task) if task else None
     
     def list_tasks(
         self,
@@ -163,12 +201,13 @@ class TaskService:
             query = query.filter(Task.user_id == user_id)
         
         if status is not None:
-            # Convert enum to string if needed, since Task.status is now String column
+            # Convert enum to string value for database query if status is an Enum member
             if isinstance(status, TaskStatus):
                 status = status.value
             query = query.filter(Task.status == status)
         
-        return query.order_by(Task.created_at.desc()).all()
+        tasks = query.order_by(Task.created_at.desc()).all()
+        return [self._normalize_task_timezone(t) for t in tasks]
     
     def list_standalone_tasks(self, user_id: Optional[int] = None) -> List[Task]:
         """List tasks not associated with any project.
@@ -195,7 +234,11 @@ class TaskService:
         status: Optional[Union[TaskStatus, str]] = None,
         priority: Optional[Union[TaskPriority, str]] = None,
         complexity: Optional[Union[TaskComplexity, str]] = None,
-        project_id: Optional[int] = None
+        project_id: Optional[int] = None,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        depends_on_task_id: Optional[int] = None,
+        dependency_type: Optional[Union[TaskDependencyType, str]] = None,
     ) -> Optional[Task]:
         """Update a task.
         
@@ -220,6 +263,9 @@ class TaskService:
         task = self.get_task(task_id)
         if not task:
             return None
+
+        # Capture pre-update values for downstream effects (e.g., gamification)
+        old_status = task.status
         
         try:
             # Normalize enum inputs to strings to match string columns
@@ -229,6 +275,8 @@ class TaskService:
                 priority = priority.value
             if isinstance(complexity, TaskComplexity):
                 complexity = complexity.value
+            if isinstance(dependency_type, TaskDependencyType):
+                dependency_type = dependency_type.value
 
             # Build update dict with only provided fields
             update_data = {}
@@ -246,6 +294,14 @@ class TaskService:
                 update_data['complexity'] = complexity
             if project_id is not None:
                 update_data['project_id'] = project_id
+            if start_date is not None:
+                update_data['start_date'] = start_date
+            if end_date is not None:
+                update_data['end_date'] = end_date
+            if depends_on_task_id is not None:
+                update_data['depends_on_task_id'] = depends_on_task_id
+            if dependency_type is not None:
+                update_data['dependency_type'] = dependency_type
             
             # Validate with Pydantic
             if update_data:
@@ -266,12 +322,27 @@ class TaskService:
                     task.complexity = validated.complexity
                 if validated.project_id is not None:
                     task.project_id = validated.project_id
+                if validated.start_date is not None:
+                    task.start_date = validated.start_date
+                if validated.end_date is not None:
+                    task.end_date = validated.end_date
+                if validated.depends_on_task_id is not None:
+                    task.depends_on_task_id = validated.depends_on_task_id
+                if validated.dependency_type is not None:
+                    task.dependency_type = validated.dependency_type.value if hasattr(validated.dependency_type, "value") else validated.dependency_type
                 
                 task.updated_at = datetime.now(timezone.utc)
             
             self.session.commit()
-            self.session.refresh(task)
-            return task
+            try:
+                self.session.refresh(task)
+            except DetachedInstanceError:
+                # If the instance was detached after commit, re-attach so callers get a live entity
+                task = self.session.merge(task)
+
+            # Award XP if task just transitioned to done (use updated complexity)
+            self._handle_completion_progress(old_status, task.status, task.complexity)
+            return self._normalize_task_timezone(task)
             
         except ValidationError as e:
             self.session.rollback()
@@ -279,6 +350,34 @@ class TaskService:
         except Exception as e:
             self.session.rollback()
             raise
+
+    def _handle_completion_progress(self, old_status, new_status, complexity: Optional[Union[TaskComplexity, str]]):
+        """Trigger gamification XP award when a task is completed.
+
+        Args:
+            old_status: Status prior to update
+            new_status: Status after update
+            complexity: Task complexity used for XP calculation
+        """
+        try:
+            old = old_status.value if isinstance(old_status, TaskStatus) else str(old_status)
+            new = new_status.value if isinstance(new_status, TaskStatus) else str(new_status)
+        except Exception:
+            return None
+
+        if old == TaskStatus.DONE.value:
+            return None
+        if new != TaskStatus.DONE.value:
+            return None
+
+        # Award XP using gamification service; ignore failures to avoid blocking task updates
+        try:
+            from app.modules.gamification.services import GamificationService
+
+            with GamificationService() as service:
+                return service.award_xp_for_task(complexity=complexity)
+        except Exception:
+            return None
     
     def delete_task(self, task_id: int) -> bool:
         """Delete a task.

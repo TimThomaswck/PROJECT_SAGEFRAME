@@ -75,22 +75,55 @@ class TaskCreateDialog(QDialog):
         self._description_input.setPlaceholderText(self.tr("Enter task description..."))
         self._description_input.setMinimumHeight(100)
         
-        # Due date field
-        due_date_label = QLabel(self.tr("Due Date (Optional):"))
-        due_date_label.setObjectName("taskDueDateLabel")
+        # Date mode toggle
+        from PySide6.QtWidgets import QCheckBox
+        self._use_timeline_checkbox = QCheckBox(self.tr("Use Timeline Dates (for Gantt Chart)"))
+        self._use_timeline_checkbox.setObjectName("useTimelineCheckbox")
+        self._use_timeline_checkbox.setChecked(False)
+        
+        # Due date field (default mode)
+        self._due_date_label = QLabel(self.tr("Due Date (Optional):"))
+        self._due_date_label.setObjectName("taskDueDateLabel")
         self._due_date_input = QDateTimeEdit()
         self._due_date_input.setObjectName("taskDueDateInput")
         self._due_date_input.setAccessibleName(self.tr("Task Due Date Input"))
         self._due_date_input.setAccessibleDescription(self.tr("Date and time picker for optional due date"))
         self._due_date_input.setCalendarPopup(True)
         self._due_date_input.setDateTime(QDateTime.currentDateTime())
-        self._due_date_checkbox = QPushButton(self.tr("Clear Due Date"))
+        self._due_date_input.setEnabled(False)
+        self._due_date_checkbox = QPushButton(self.tr("Set Due Date"))
         self._due_date_checkbox.setObjectName("clearDueDateButton")
         self._has_due_date = False
         
-        due_date_layout = QHBoxLayout()
-        due_date_layout.addWidget(self._due_date_input)
-        due_date_layout.addWidget(self._due_date_checkbox)
+        self._due_date_layout = QHBoxLayout()
+        self._due_date_layout.addWidget(self._due_date_input)
+        self._due_date_layout.addWidget(self._due_date_checkbox)
+        
+        # Start date field (timeline mode)
+        self._start_date_label = QLabel(self.tr("Start Date:"))
+        self._start_date_label.setObjectName("taskStartDateLabel")
+        self._start_date_input = QDateTimeEdit()
+        self._start_date_input.setObjectName("taskStartDateInput")
+        self._start_date_input.setAccessibleName(self.tr("Task Start Date Input"))
+        self._start_date_input.setAccessibleDescription(self.tr("Date and time picker for start date"))
+        self._start_date_input.setCalendarPopup(True)
+        self._start_date_input.setDateTime(QDateTime.currentDateTime())
+        
+        # End date field (timeline mode)
+        self._end_date_label = QLabel(self.tr("End Date:"))
+        self._end_date_label.setObjectName("taskEndDateLabel")
+        self._end_date_input = QDateTimeEdit()
+        self._end_date_input.setObjectName("taskEndDateInput")
+        self._end_date_input.setAccessibleName(self.tr("Task End Date Input"))
+        self._end_date_input.setAccessibleDescription(self.tr("Date and time picker for end date"))
+        self._end_date_input.setCalendarPopup(True)
+        self._end_date_input.setDateTime(QDateTime.currentDateTime().addDays(1))
+        
+        # Hide timeline fields by default
+        self._start_date_label.setVisible(False)
+        self._start_date_input.setVisible(False)
+        self._end_date_label.setVisible(False)
+        self._end_date_input.setVisible(False)
         
         # Status dropdown
         status_label = QLabel(self.tr("Status:"))
@@ -132,8 +165,13 @@ class TaskCreateDialog(QDialog):
         layout.addWidget(self._title_input)
         layout.addWidget(desc_label)
         layout.addWidget(self._description_input)
-        layout.addWidget(due_date_label)
-        layout.addLayout(due_date_layout)
+        layout.addWidget(self._use_timeline_checkbox)
+        layout.addWidget(self._due_date_label)
+        layout.addLayout(self._due_date_layout)
+        layout.addWidget(self._start_date_label)
+        layout.addWidget(self._start_date_input)
+        layout.addWidget(self._end_date_label)
+        layout.addWidget(self._end_date_input)
         layout.addWidget(status_label)
         layout.addWidget(self._status_combo)
         layout.addWidget(project_label)
@@ -149,6 +187,7 @@ class TaskCreateDialog(QDialog):
         self._create_button.clicked.connect(self._on_create_clicked)
         self._cancel_button.clicked.connect(self.reject)
         self._due_date_checkbox.clicked.connect(self._toggle_due_date)
+        self._use_timeline_checkbox.stateChanged.connect(self._toggle_timeline_mode)
         
         # Connect ViewModel signals
         self._view_model.validationError.connect(self._on_validation_error)
@@ -160,8 +199,23 @@ class TaskCreateDialog(QDialog):
         self._has_due_date = not self._has_due_date
         self._due_date_input.setEnabled(self._has_due_date)
         self._due_date_checkbox.setText(
-            self.tr("Set Due Date") if not self._has_due_date else self.tr("Clear Due Date")
+            self.tr("Clear Due Date") if self._has_due_date else self.tr("Set Due Date")
         )
+    
+    def _toggle_timeline_mode(self, state):
+        """Toggle between due date mode and timeline mode."""
+        use_timeline = bool(state)
+        
+        # Show/hide due date fields
+        self._due_date_label.setVisible(not use_timeline)
+        self._due_date_input.setVisible(not use_timeline)
+        self._due_date_checkbox.setVisible(not use_timeline)
+        
+        # Show/hide timeline fields
+        self._start_date_label.setVisible(use_timeline)
+        self._start_date_input.setVisible(use_timeline)
+        self._end_date_label.setVisible(use_timeline)
+        self._end_date_input.setVisible(use_timeline)
     
     @Slot()
     def _on_create_clicked(self):
@@ -170,10 +224,19 @@ class TaskCreateDialog(QDialog):
         description = self._description_input.toPlainText().strip()
         status = self._status_combo.currentText()
         
-        # Get due date if enabled
         due_date = None
-        if self._has_due_date:
-            due_date = self._due_date_input.dateTime().toPython()
+        start_date = None
+        end_date = None
+        
+        # Use timeline mode or due date mode
+        if self._use_timeline_checkbox.isChecked():
+            # Timeline mode: use start and end dates
+            start_date = self._start_date_input.dateTime().toPython()
+            end_date = self._end_date_input.dateTime().toPython()
+        else:
+            # Due date mode: use due date if enabled
+            if self._has_due_date:
+                due_date = self._due_date_input.dateTime().toPython()
         
         # Get project ID
         project_id = self._project_combo.currentData()
@@ -184,7 +247,9 @@ class TaskCreateDialog(QDialog):
             description=description or None,
             due_date=due_date,
             status=status,
-            project_id=project_id
+            project_id=project_id,
+            start_date=start_date,
+            end_date=end_date
         ):
             self.accept()
     

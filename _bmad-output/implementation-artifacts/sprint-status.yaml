@@ -1,12 +1,8 @@
-# Sprint Status Template
-# This is an EXAMPLE showing the expected format
-# The actual file will be generated with all epics/stories from your epic files
-
 # generated: 2026-01-26
 # project: PROJECT_SAGEFRAME
-# project_key:
+# project_key: sageframe
 # tracking_system: file-system
-# story_location: C:\Users\LEGION\Documents\PROJECT_SAGEFRAME\_bmad-output\implementation-artifacts
+# story_location: _bmad-output/implementation-artifacts
 
 # STATUS DEFINITIONS:
 # ==================
@@ -34,52 +30,58 @@
 
 generated: 2026-01-26
 project: PROJECT_SAGEFRAME
-project_key:
+project_key: sageframe
 tracking_system: file-system
-story_location: C:\Users\LEGION\Documents\PROJECT_SAGEFRAME\_bmad-output\implementation-artifacts
+story_location: "_bmad-output/implementation-artifacts"
 
 development_status:
   epic-1: in-progress
-  1-1-initialize-the-pyside6-desktop-application: done
-  1-2-implement-basic-application-window-and-theming: completed
-  1-3-implement-mood-check-in: completed
-  1-4-implement-empathetic-ai-co-pilot-communication: completed
-  1-5-implement-proactive-suggestions-based-on-mood: completed
-  1-6-implement-keyboard-shortcut-navigation-help-menu: completed
-  1-7-implement-undo-functionality: done
+  1-1-initialize-the-pyside6-desktop-application: ready-for-dev
+  1-2-implement-basic-application-window-and-theming: ready-for-dev
+  1-3-implement-mood-check-in: ready-for-dev
+  1-4-implement-empathetic-ai-co-pilot-communication: review
+  1-5-implement-proactive-suggestions-based-on-mood: ready-for-dev
+  1-6-implement-keyboard-shortcut-navigation-help-menu: ready-for-dev
+  1-7-implement-undo-functionality: ready-for-dev
   epic-1-retrospective: done
 
-  epic-2: backlog
-  2-1-create-view-edit-and-delete-a-project: backlog
-  2-2-create-view-edit-and-delete-a-task: backlog
-  2-3-assign-properties-to-a-task: backlog
-  2-4-display-tasks-and-projects-in-kanban-view: backlog
-  2-5-display-tasks-and-projects-in-gantt-chart-view: backlog
-  2-6-implement-gamified-progress-tracking-levels-xp: backlog
+  epic-2: in-progress
+  2-1-create-view-edit-and-delete-a-project: ready-for-dev
+  2-2-create-view-edit-and-delete-a-task: review
+  2-3-assign-properties-to-a-task: in-progress
+  2-4-display-tasks-and-projects-in-kanban-view: review
+  2-5-display-tasks-and-projects-in-gantt-chart-view: review
+  2-6-implement-gamified-progress-tracking-levels-xp: in-progress
+  2-7-hierarchical-tasks-1-level-subtasks: backlog
+  2-8-basic-task-suggestions-overdue-untouched-reminders: backlog
+  2-9-manual-energy-effort-estimation: backlog
   epic-2-retrospective: optional
 
-  epic-3: backlog
-  3-2-implement-smart-tagging-for-automatic-categorization: backlog
-  3-3-automatically-enrich-tagged-content-from-external-sources: backlog
-  3-4-implement-image-based-short-notes-ingestion: backlog
-  3-5-implement-ocr-for-converting-image-notes-to-editable-text: backlog
+  epic-3: in-progress
+  3-1-implement-smart-tagging-for-automatic-categorization: ready-for-dev
+  3-2-automatically-enrich-tagged-content-from-external-sources: ready-for-dev
+  3-3-import-and-extract-information-from-bills-and-notes: ready-for-dev
+  3-4-tags-smart-filters: ready-for-dev
   epic-3-retrospective: optional
 
-  epic-4: backlog
-  4-1-connect-external-calendar-for-bi-directional-synchronization: backlog
-  4-2-read-calendar-to-identify-free-busy-times: backlog
-  4-3-create-update-and-delete-calendar-events: backlog
-  4-4-proactively-suggest-engagements-based-on-availability: backlog
+  epic-4: in-progress
+  4-1-connect-external-calendar-for-bi-directional-synchronization: ready-for-dev
+  4-2-read-calendar-to-identify-free-busy-times: ready-for-dev
+  4-3-create-update-and-delete-calendar-events: ready-for-dev
+  4-4-proactively-suggest-engagements-based-on-availability: ready-for-dev
+  4-5-time-blocking-with-google-calendar-integration: ready-for-dev
+  4-6-intelligent-scheduling-lite: ready-for-dev
   epic-4-retrospective: optional
 
-  epic-5: backlog
-  5-1-implement-local-first-data-storage-as-default: backlog
-  5-2-enable-user-controlled-cloud-sync: backlog
-  5-3-implement-full-data-export: backlog
+  epic-5: in-progress
+  5-1-implement-local-first-data-storage-as-default: ready-for-dev
   epic-5-retrospective: optional
 
-  epic-6: backlog
-  6-1-implement-windows-desktop-platform-support: backlog
-  6-2-implement-user-accessible-api-for-automation: backlog
-  6-3-implement-multi-tenancy-support: backlog
+  epic-6: in-progress
+  6-1-implement-windows-desktop-platform-support: ready-for-dev
   epic-6-retrospective: optional
+
+  epic-7: in-progress
+  7-1-simple-habit-tracker: ready-for-dev
+  7-2-pomodoro-focus-mode: backlog
+  epic-7-retrospective: optional

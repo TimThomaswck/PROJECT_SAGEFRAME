@@ -65,6 +65,15 @@ class TaskComplexity(str, Enum):
     COMPLEX = "complex"
 
 
+class TaskDependencyType(str, Enum):
+    """Task dependency relationship types."""
+
+    FINISH_TO_START = "finish_to_start"
+    START_TO_START = "start_to_start"
+    FINISH_TO_FINISH = "finish_to_finish"
+    START_TO_FINISH = "start_to_finish"
+
+
 class Task(Base):
     """SQLAlchemy model for tasks.
     
@@ -83,15 +92,24 @@ class Task(Base):
     priority = Column(String(10), nullable=False, default='medium')
     complexity = Column(String(10), nullable=False, default='moderate')
     project_id = Column(Integer, ForeignKey('projects.id', ondelete='SET NULL'), nullable=True)
+    start_date = Column(DateTime(timezone=True), nullable=True)
+    end_date = Column(DateTime(timezone=True), nullable=True)
+    depends_on_task_id = Column(Integer, ForeignKey('tasks.id', ondelete='SET NULL'), nullable=True)
+    dependency_type = Column(String(32), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=False, default=func.now(), onupdate=func.now())
     user_id = Column(Integer, nullable=True)  # Prepared for future multi-tenancy
     
     # Relationship to Project
     project = relationship("Project", back_populates="tasks")
+    depends_on = relationship("Task", remote_side=[id], backref="dependents", foreign_keys=[depends_on_task_id])
     
     def __repr__(self) -> str:
-        return f"<Task(id={self.id}, title={self.title!r}, status={self.status}, priority={self.priority}, complexity={self.complexity}, project_id={self.project_id})>"
+        return (
+            f"<Task(id={self.id}, title={self.title!r}, status={self.status}, priority={self.priority}, "
+            f"complexity={self.complexity}, project_id={self.project_id}, start_date={self.start_date}, end_date={self.end_date}, "
+            f"depends_on={self.depends_on_task_id})>"
+        )
 
 
 class TaskSchema(BaseModel):
@@ -105,9 +123,13 @@ class TaskSchema(BaseModel):
     description: Optional[str] = Field(None, max_length=MAX_DESCRIPTION_LENGTH, description="Optional task description")
     due_date: Optional[datetime] = Field(None, description="Optional due date")
     status: str = Field(default="todo", description="Task status")
-    priority: str = Field(default="medium", description="Task priority level")
-    complexity: str = Field(default="moderate", description="Task complexity level")
+    priority: TaskPriority = Field(default=TaskPriority.MEDIUM, description="Task priority level")
+    complexity: TaskComplexity = Field(default=TaskComplexity.MODERATE, description="Task complexity level")
     project_id: Optional[int] = Field(None, description="Optional project association")
+    start_date: Optional[datetime] = Field(None, description="Task planned start date")
+    end_date: Optional[datetime] = Field(None, description="Task planned end date")
+    depends_on_task_id: Optional[int] = Field(None, description="Upstream task dependency")
+    dependency_type: Optional[TaskDependencyType] = Field(None, description="Dependency relationship type")
     
     @field_validator('title')
     @classmethod
@@ -145,17 +167,26 @@ class TaskSchema(BaseModel):
         """Validate due_date if provided."""
         # Accept any valid datetime, None is also valid
         return v
+
+    @field_validator('end_date')
+    @classmethod
+    def validate_timeline(cls, v: Optional[datetime], info):
+        """Ensure start_date is not after end_date when both provided."""
+        start = info.data.get('start_date')
+        if v is not None and start is not None and start > v:
+            raise ValueError("start_date cannot be after end_date")
+        return v
     
     @field_validator('priority', mode='before')
     @classmethod
     def validate_priority(cls, v) -> str:
         """Validate priority and return normalized string."""
         if isinstance(v, TaskPriority):
-            return v.value
+            return v
         if isinstance(v, str):
             v = v.lower()
             if v in {p.value for p in TaskPriority}:
-                return v
+                return TaskPriority(v)
             raise ValueError(f"Priority must be one of: {', '.join([p.value for p in TaskPriority])}")
         raise ValueError("Priority must be a string or TaskPriority enum")
     
@@ -164,13 +195,28 @@ class TaskSchema(BaseModel):
     def validate_complexity(cls, v) -> str:
         """Validate complexity and return normalized string."""
         if isinstance(v, TaskComplexity):
-            return v.value
+            return v
         if isinstance(v, str):
             v = v.lower()
             if v in {c.value for c in TaskComplexity}:
-                return v
+                return TaskComplexity(v)
             raise ValueError(f"Complexity must be one of: {', '.join([c.value for c in TaskComplexity])}")
         raise ValueError("Complexity must be a string or TaskComplexity enum")
+
+    @field_validator('dependency_type', mode='before')
+    @classmethod
+    def validate_dependency_type(cls, v: Optional[TaskDependencyType]) -> Optional[TaskDependencyType]:
+        """Normalize dependency type input to enum."""
+        if v is None:
+            return None
+        if isinstance(v, TaskDependencyType):
+            return v
+        if isinstance(v, str):
+            try:
+                return TaskDependencyType(v.lower())
+            except ValueError as exc:
+                raise ValueError(f"dependency_type must be one of: {', '.join([d.value for d in TaskDependencyType])}") from exc
+        raise ValueError("dependency_type must be a string or TaskDependencyType enum")
     
     model_config = ConfigDict(from_attributes=True)
 
@@ -189,6 +235,10 @@ class TaskUpdateSchema(BaseModel):
     priority: Optional[str] = Field(None, description="Task priority level")
     complexity: Optional[str] = Field(None, description="Task complexity level")
     project_id: Optional[int] = Field(None, description="Optional project association")
+    start_date: Optional[datetime] = Field(None, description="Task planned start date")
+    end_date: Optional[datetime] = Field(None, description="Task planned end date")
+    depends_on_task_id: Optional[int] = Field(None, description="Upstream task dependency")
+    dependency_type: Optional[TaskDependencyType] = Field(None, description="Dependency relationship type")
 
     @field_validator('status', mode='before')
     @classmethod
@@ -212,11 +262,11 @@ class TaskUpdateSchema(BaseModel):
         if v is None:
             return None
         if isinstance(v, TaskPriority):
-            return v.value
+            return v
         if isinstance(v, str):
             v = v.lower()
             if v in {p.value for p in TaskPriority}:
-                return v
+                return TaskPriority(v)
             raise ValueError(f"Priority must be one of: {', '.join([p.value for p in TaskPriority])}")
         raise ValueError("Priority must be a string or TaskPriority enum")
 
@@ -227,13 +277,28 @@ class TaskUpdateSchema(BaseModel):
         if v is None:
             return None
         if isinstance(v, TaskComplexity):
-            return v.value
+            return v
         if isinstance(v, str):
             v = v.lower()
             if v in {c.value for c in TaskComplexity}:
-                return v
+                return TaskComplexity(v)
             raise ValueError(f"Complexity must be one of: {', '.join([c.value for c in TaskComplexity])}")
         raise ValueError("Complexity must be a string or TaskComplexity enum")
+
+    @field_validator('dependency_type', mode='before')
+    @classmethod
+    def validate_dependency_type_update(cls, v: Optional[TaskDependencyType]) -> Optional[TaskDependencyType]:
+        """Normalize dependency type input for updates."""
+        if v is None:
+            return None
+        if isinstance(v, TaskDependencyType):
+            return v
+        if isinstance(v, str):
+            try:
+                return TaskDependencyType(v.lower())
+            except ValueError as exc:
+                raise ValueError(f"dependency_type must be one of: {', '.join([d.value for d in TaskDependencyType])}") from exc
+        raise ValueError("dependency_type must be a string or TaskDependencyType enum")
     
     @field_validator('title')
     @classmethod
@@ -252,6 +317,15 @@ class TaskUpdateSchema(BaseModel):
         if v is not None and isinstance(v, str):
             v = v.strip()
             return v if v else None
+        return v
+
+    @field_validator('end_date')
+    @classmethod
+    def validate_timeline(cls, v: Optional[datetime], info):
+        """Ensure start_date is not after end_date when both provided."""
+        start = info.data.get('start_date')
+        if v is not None and start is not None and start > v:
+            raise ValueError("start_date cannot be after end_date")
         return v
     
     @field_validator('status', mode='before')

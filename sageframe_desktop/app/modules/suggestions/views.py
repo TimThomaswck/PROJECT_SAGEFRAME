@@ -68,6 +68,8 @@ class SuggestionNotificationWidget(QWidget):
         title_label.setObjectName("suggestionTitle")
         font = title_label.font()
         font.setBold(True)
+        if font.pointSize() <= 0:
+            font.setPointSize(11)
         title_label.setFont(font)
         title_label.setAccessibleName(f"Suggestion: {task_name}")
         content_layout.addWidget(title_label)
@@ -182,8 +184,9 @@ class SuggestionPanel(QWidget):
         header = QLabel("Suggestions")
         header.setObjectName("panelHeader")
         font = header.font()
+        if font.pointSize() <= 0:
+            font.setPointSize(11)
         font.setBold(True)
-        font.setPointSize(11)
         header.setFont(font)
         header.setAccessibleName("Suggestions panel")
         layout.addWidget(header)

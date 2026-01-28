@@ -51,12 +51,17 @@ class TaskViewModel(QObject):
         self._task_title = ""
         self._task_description = ""
         self._task_due_date: Optional[datetime] = None
-        self._task_status = 'todo'
+        self._task_status = TaskStatus.TODO
         self._task_priority = 'medium'
         self._task_complexity = 'moderate'
         self._task_project_id: Optional[int] = None
+        self._task_start_date: Optional[datetime] = None
+        self._task_end_date: Optional[datetime] = None
+        self._depends_on_task_id: Optional[int] = None
+        self._dependency_type: Optional[str] = None
         self._tasks_cache: List[Dict[str, Any]] = []
         self._is_submitting = False
+        self._is_loading = False  # Reentrancy guard to avoid recursive loads
         self._validation_errors: Dict[str, str] = {}
         self._current_filter_project_id: Optional[int] = None
         self._current_filter_status: Optional[TaskStatus] = None
@@ -88,21 +93,20 @@ class TaskViewModel(QObject):
     @Property(str)
     def taskStatus(self) -> str:
         """Get current task status."""
-        return self._task_status
+        return self._task_status.value if isinstance(self._task_status, TaskStatus) else str(self._task_status)
     
     @taskStatus.setter
     def taskStatus(self, value: str):
         """Set task status."""
         try:
-            # Extract string value if enum, otherwise use directly
-            if isinstance(value, TaskStatus):
-                status_str = value.value
+            if isinstance(value, str):
+                status = TaskStatus(value.lower())
             else:
-                status_str = str(value).lower() if value else 'todo'
+                status = value
             
-            if self._task_status != status_str:
-                self._task_status = status_str
-                self.taskStatusChanged.emit(status_str)
+            if self._task_status != status:
+                self._task_status = status
+                self.taskStatusChanged.emit(status.value)
         except (ValueError, AttributeError) as e:
             self.validationError.emit(f"Invalid status: {value}")
     
@@ -188,10 +192,12 @@ class TaskViewModel(QObject):
         title: str,
         description: Optional[str] = None,
         due_date: Optional[datetime] = None,
-        status: str = "todo",
+        status: Union[TaskStatus, str] = TaskStatus.TODO,
         priority: Optional[TaskPriority] = None,
         complexity: Optional[TaskComplexity] = None,
-        project_id: Optional[int] = None
+        project_id: Optional[int] = None,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None
     ) -> bool:
         """Create a new task.
         
@@ -199,7 +205,7 @@ class TaskViewModel(QObject):
             title: Task title
             description: Optional task description
             due_date: Optional due date
-            status: Task status (default: 'todo')
+            status: Task status (default: TODO)
             priority: Optional priority level (default: MEDIUM)
             complexity: Optional complexity level (default: MODERATE)
             project_id: Optional project association
@@ -240,6 +246,10 @@ class TaskViewModel(QObject):
                 self._undo_manager.push(command)
                 task_id = command.get_task_id()
                 task = self._service.get_task(task_id)
+                # Update timeline fields if provided (undo command doesn't handle these yet)
+                if start_date or end_date:
+                    self._service.update_task(task_id, start_date=start_date, end_date=end_date)
+                    task = self._service.get_task(task_id)
             else:
                 # Create directly without undo support
                 task = self._service.create_task(
@@ -249,7 +259,9 @@ class TaskViewModel(QObject):
                     status=status,
                     priority=priority,
                     complexity=complexity,
-                    project_id=project_id
+                    project_id=project_id,
+                    start_date=start_date,
+                    end_date=end_date
                 )
             
             # Refresh cache
@@ -279,10 +291,14 @@ class TaskViewModel(QObject):
         title: Optional[str] = None,
         description: Optional[str] = None,
         due_date: Optional[datetime] = None,
-        status: Optional[str] = None,
+        status: Optional[Union[TaskStatus, str]] = None,
         priority: Optional[TaskPriority] = None,
         complexity: Optional[TaskComplexity] = None,
-        project_id: Optional[int] = None
+        project_id: Optional[int] = None,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        depends_on_task_id: Optional[int] = None,
+        dependency_type: Optional[str] = None,
     ) -> bool:
         """Update an existing task.
         
@@ -331,7 +347,11 @@ class TaskViewModel(QObject):
                     status=status,
                     priority=priority,
                     complexity=complexity,
-                    project_id=project_id
+                    project_id=project_id,
+                    start_date=start_date,
+                    end_date=end_date,
+                    depends_on_task_id=depends_on_task_id,
+                    dependency_type=dependency_type,
                 )
             
             if task is None:
@@ -340,9 +360,14 @@ class TaskViewModel(QObject):
             
             # Emit property change signals if properties were updated
             if priority is not None:
-                self.taskPriorityChanged.emit(task.priority.value)
+                priority_value = task.priority.value if hasattr(task.priority, "value") else task.priority
+                self.taskPriorityChanged.emit(priority_value)
             if complexity is not None:
-                self.taskComplexityChanged.emit(task.complexity.value)
+                complexity_value = task.complexity.value if hasattr(task.complexity, "value") else task.complexity
+                self.taskComplexityChanged.emit(complexity_value)
+            if status is not None: # New: emit status change signal
+                status_value = task.status.value if hasattr(task.status, "value") else task.status
+                self.taskStatusChanged.emit(status_value)
             
             # Refresh cache
             self._load_tasks_cache()
@@ -431,8 +456,12 @@ class TaskViewModel(QObject):
             self._task_title = task.title
             self._task_description = task.description or ""
             self._task_due_date = task.due_date
-            self._task_status = task.status or "todo"
+            self._task_status = task.status
             self._task_project_id = task.project_id
+            self._task_start_date = task.start_date
+            self._task_end_date = task.end_date
+            self._depends_on_task_id = task.depends_on_task_id
+            self._dependency_type = task.dependency_type
             
             return True
             
@@ -456,7 +485,7 @@ class TaskViewModel(QObject):
         """
         grouped: Dict[str, List[Dict[str, Any]]] = {status: [] for status in VALID_STATUSES}
         for task in self._tasks_cache:
-            status = task.get("status", "todo")
+            status = task.get("status", TaskStatus.TODO.value) # Use TaskStatus.TODO.value
             grouped.setdefault(status, []).append(task)
         return grouped
     
@@ -480,7 +509,8 @@ class TaskViewModel(QObject):
         Returns:
             List of Task objects for the project
         """
-        return self._service.list_tasks(project_id=project_id)
+        with self._service:
+            return self._service.list_tasks(project_id=project_id)
     
     def get_standalone_tasks(self) -> List[Dict[str, Any]]:
         """Get tasks not associated with any project.
@@ -493,7 +523,7 @@ class TaskViewModel(QObject):
     def set_filter(
         self,
         project_id: Optional[int] = None,
-        status: Optional[str] = None
+        status: Optional[Union[TaskStatus, str]] = None # Changed type
     ):
         """Set filter for task list.
         
@@ -501,6 +531,8 @@ class TaskViewModel(QObject):
             project_id: Filter by project (None = all)
             status: Filter by status (None = all)
         """
+        if isinstance(status, str): # New: convert string to TaskStatus
+            status = TaskStatus(status.lower())
         self._current_filter_project_id = project_id
         self._current_filter_status = status
         self._load_tasks_cache()
@@ -527,7 +559,7 @@ class TaskViewModel(QObject):
             self.operationError.emit(self.tr("Failed to refresh tasks: {}").format(str(e)))
             return False
 
-    def update_task_status(self, task_id: int, new_status: str) -> bool:
+    def update_task_status(self, task_id: int, new_status: Union[TaskStatus, str]) -> bool: # Changed type
         """Update task status (used by Kanban drag-and-drop).
 
         Args:
@@ -537,11 +569,16 @@ class TaskViewModel(QObject):
         Returns:
             bool: True if status was updated
         """
-        if new_status not in VALID_STATUSES:
+        if isinstance(new_status, str): # New: convert string to TaskStatus for validation
+            new_status_enum = TaskStatus(new_status.lower())
+        else:
+            new_status_enum = new_status
+
+        if new_status_enum.value not in VALID_STATUSES: # Validate enum value
             self.validationError.emit(self.tr(f"Invalid status: {new_status}"))
             return False
 
-        return self.update_task(task_id, status=new_status)
+        return self.update_task(task_id, status=new_status_enum) # Pass enum to update
     
     def count_tasks_by_project(self, project_id: int) -> int:
         """Count tasks for a specific project.
@@ -560,11 +597,16 @@ class TaskViewModel(QObject):
     # Private helper methods
     
     def _load_tasks_cache(self):
-        """Load tasks from service and cache them."""
+        """Load tasks from service and cache them.
+        Guards against re-entrant calls which can cause recursion loops.
+        """
+        if getattr(self, "_is_loading", False):
+            return
+        self._is_loading = True
         try:
             tasks = self._service.list_tasks(
                 project_id=self._current_filter_project_id,
-                status=self._current_filter_status
+                status=self._current_filter_status # Status type is now TaskStatus
             )
             self._tasks_cache = [
                 {
@@ -572,18 +614,26 @@ class TaskViewModel(QObject):
                     'title': t.title,
                     'description': t.description or '',
                     'due_date': t.due_date,
-                    'status': t.status or 'todo',
+                    'status': t.status.value if isinstance(t.status, TaskStatus) else str(t.status), # Access .value
                     'project_id': t.project_id,
-                    'priority': t.priority or 'medium',
-                    'complexity': t.complexity or 'moderate',
+                    'priority': getattr(t.priority, "value", str(t.priority)),
+                    'complexity': getattr(t.complexity, "value", str(t.complexity)),
+                    'start_date': getattr(t, 'start_date', None),
+                    'end_date': getattr(t, 'end_date', None),
+                    'depends_on_task_id': getattr(t, 'depends_on_task_id', None),
+                    'dependency_type': getattr(t, 'dependency_type', None),
                     'created_at': t.created_at,
                     'updated_at': t.updated_at
                 }
                 for t in tasks
             ]
         except Exception as e:
-            self.operationError.emit(self.tr("Failed to load tasks: {}").format(str(e)))
+            # Avoid recursive dialog pops on deep recursion; log-friendly message
+            msg = f"Failed to load tasks: {e}" if not isinstance(e, RecursionError) else "Failed to load tasks (retry later)"
+            self.operationError.emit(self.tr(msg))
             self._tasks_cache = []
+        finally:
+            self._is_loading = False
     
     def _validate_title(self):
         """Validate task title field."""
@@ -597,8 +647,12 @@ class TaskViewModel(QObject):
         self._task_title = ""
         self._task_description = ""
         self._task_due_date = None
-        self._task_status = "todo"
+        self._task_status = TaskStatus.TODO
         self._task_project_id = None
+        self._task_start_date = None
+        self._task_end_date = None
+        self._depends_on_task_id = None
+        self._dependency_type = None
         self._validation_errors.clear()
     
     def get_task_due_date(self) -> Optional[datetime]:

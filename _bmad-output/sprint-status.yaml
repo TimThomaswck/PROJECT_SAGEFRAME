@@ -45,25 +45,27 @@ development_status:
   1-7-implement-undo-functionality: done
   epic-1-retrospective: optional
 
-  epic-2: backlog
-  2-1-create-view-edit-and-delete-a-project: backlog
-  2-2-create-view-edit-and-delete-a-task: backlog
-  2-3-assign-properties-to-a-task: backlog
+  epic-2: in-progress
+  2-1-create-view-edit-and-delete-a-project: done
+  2-2-create-view-edit-and-delete-a-task: in-progress
+  2-3-assign-properties-to-a-task: in-progress
   2-4-display-tasks-and-projects-in-kanban-view: backlog
   2-5-display-tasks-and-projects-in-gantt-chart-view: backlog
   2-6-implement-gamified-progress-tracking-levels-xp: backlog
   epic-2-retrospective: optional
 
-  epic-3: backlog
-  3-2-implement-smart-tagging-for-automatic-categorization: backlog
-  3-3-automatically-enrich-tagged-content-from-external-sources: backlog
-  3-4-implement-image-based-short-notes-ingestion: backlog
-  3-5-implement-ocr-for-converting-image-notes-to-editable-text: backlog
+  epic-3: in-progress
+  3-1-story-file-placeholder: done
+  3-2-implement-smart-tagging-for-automatic-categorization: done
+  3-3-implement-file-import-extraction-bills-notes: done
+  3-4-implement-tags-and-smart-filters: done
+  3-5-implement-image-based-short-notes-ingestion: backlog
+  3-6-implement-ocr-for-converting-image-notes-to-editable-text: backlog
   epic-3-retrospective: optional
 
-  epic-4: backlog
-  4-1-connect-external-calendar-for-bi-directional-synchronization: backlog
-  4-2-read-calendar-to-identify-free-busy-times: backlog
+  epic-4: in-progress
+  4-1-connect-external-calendar-for-bi-directional-synchronization: done
+  4-2-read-calendar-to-identify-free-busy-times: done
   4-3-create-update-and-delete-calendar-events: backlog
   4-4-proactively-suggest-engagements-based-on-availability: backlog
   epic-4-retrospective: optional

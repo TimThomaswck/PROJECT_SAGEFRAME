@@ -276,6 +276,25 @@ These patterns will be verified through code reviews, automated linting, and whe
     *   Simple interactions (greetings): 10% LLM, 90% templates
     *   Complex scenarios (scheduling): 90% LLM, 10% fallback
 *   **Latency Budgets:**
-    *   Simple communication: \<100ms (templates only)
-    *   Nuanced responses: \<500ms (LLM acceptable)
-    *   Scheduling analysis: \<1000ms (user expects AI "thinking")
+    *   Simple communication: <100ms (templates only)
+    *   Nuanced responses: <500ms (LLM acceptable)
+    *   Scheduling analysis: <1000ms (user expects AI "thinking")
+
+### File Ingestion and Extraction Pipeline
+
+*   **Overall Pipeline:**
+    1.  User drops a file (image/PDF) into the app.
+    2.  The original file is stored locally for recoverability.
+    3.  An extraction step is run (asynchronously).
+    4.  The extracted output (text + structured fields) is saved.
+    5.  The user is offered actions (e.g., "create task").
+*   **Extraction Strategy:**
+    *   **If PDF has selectable text:** Extract locally to avoid unnecessary API calls.
+    *   **Else (image or image-based PDF):** Use external APIs for extraction.
+*   **API Choices:**
+    *   **"Bill/Invoice" mode:** Azure Invoice Model for specialized extraction.
+    *   **"Note/Image" mode:** OpenAI Vision for general-purpose extraction.
+    *   **General OCR:** Google Cloud Vision OCR as a fallback or for simple text extraction.
+*   **Schema Discipline:**
+    *   All API calls will enforce a strict JSON schema for the output.
+    *   The application will validate the schema before saving the extracted data to the local database. This is critical for preventing data corruption from messy AI output.

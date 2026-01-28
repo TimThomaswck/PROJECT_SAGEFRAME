@@ -451,6 +451,16 @@ class CopilotViewModel(QObject):
         }
         return fallbacks.get(message_type, "I'm here to help!")
     
+    def emit_message_ready(self, message_text: str, message_id: str) -> None:
+        """
+        Public wrapper to display a message immediately.
+        
+        Args:
+            message_text: Message text to display
+            message_id: Unique message ID
+        """
+        self.display_message(message_text, message_id, auto_dismiss_ms=8000)
+    
     def cleanup(self):
         """Perform cleanup on ViewModel destruction."""
         # Clear queued messages

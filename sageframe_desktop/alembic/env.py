@@ -1,6 +1,6 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
+from sqlalchemy import engine_from_config, create_engine
 from sqlalchemy import pool
 
 from alembic import context
@@ -22,8 +22,10 @@ from pathlib import Path
 # Add app directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.database import Base
-from app.modules.mood_checkin.models import MoodCheckIn  # noqa: F401
+from app.database import Base, DATABASE_URL
+import app.modules.mood_checkin.models  # noqa: F401
+import app.modules.projects.models  # noqa: F401
+import app.modules.tasks.models  # noqa: F401
 
 target_metadata = Base.metadata
 
@@ -45,7 +47,8 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    # Use the application's database URL to keep Alembic in sync
+    url = DATABASE_URL
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -64,9 +67,9 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    # Build engine directly from the application's database URL
+    connectable = create_engine(
+        DATABASE_URL,
         poolclass=pool.NullPool,
     )
 

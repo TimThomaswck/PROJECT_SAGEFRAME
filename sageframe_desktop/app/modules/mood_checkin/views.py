@@ -171,8 +171,7 @@ class MoodCheckInDialog(QDialog):
             message: Result message
         """
         if success:
-            # Show brief success feedback (could be replaced with status indicator)
-            QMessageBox.information(self, "Success", message)
+            # Emit completion without modal popup; main window will show a toast
             self.moodCheckInCompleted.emit()
             self.accept()  # Close dialog
         else:

@@ -86,7 +86,8 @@ class CopilotNotificationWidget(QWidget):
         
         self.setLayout(layout)
         self.setMinimumHeight(50)
-        self.setMaximumHeight(100)
+        # Remove max height to allow multi-line messages to display fully
+        # self.setMaximumHeight(100) was limiting greeting messages
         
         # Widget should accept focus for keyboard navigation
         self.setFocusPolicy(Qt.ClickFocus)
@@ -278,6 +279,7 @@ class CopilotPanel(QWidget):
         message_text: str,
         message_id: str = "",
         auto_dismiss: bool = True,
+        replace_category: str = None,
     ):
         """
         Display a message in the panel.
@@ -286,6 +288,7 @@ class CopilotPanel(QWidget):
             message_text: The message to display.
             message_id: Unique identifier (generated if not provided).
             auto_dismiss: Whether to auto-dismiss after timeout.
+            replace_category: If provided, removes previous messages with this category before displaying.
         """
         # Generate message_id if not provided
         if not message_id:
@@ -297,11 +300,17 @@ class CopilotPanel(QWidget):
                 "text": message_text,
                 "id": message_id,
                 "auto_dismiss": auto_dismiss,
+                "replace_category": replace_category,
             })
             return
         
+        # Clear previous messages if replace_category is specified
+        if replace_category:
+            self.clear_messages_by_category(replace_category)
+        
         # Create and display widget
         widget = CopilotNotificationWidget(message_id, message_text)
+        widget.category = replace_category  # Store category for later filtering
         
         # Connect signals
         widget.dismissed.connect(self._on_message_dismissed)
@@ -324,6 +333,14 @@ class CopilotPanel(QWidget):
             timer.setSingleShot(True)
             timer.timeout.connect(lambda: self._auto_dismiss_message(message_id))
             timer.start(self.auto_dismiss_timeout)
+    
+    def clear_messages_by_category(self, category: str):
+        """Remove all messages with the specified category."""
+        for widget in self.displayed_widgets[:]:
+            if hasattr(widget, 'category') and widget.category == category:
+                self.message_container_layout.removeWidget(widget)
+                widget.deleteLater()
+                self.displayed_widgets.remove(widget)
     
     def _on_message_dismissed(self, message_id: str):
         """Handle message dismissal."""

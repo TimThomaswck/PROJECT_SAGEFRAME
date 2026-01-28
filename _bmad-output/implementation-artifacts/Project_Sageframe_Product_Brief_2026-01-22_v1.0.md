@@ -46,7 +46,7 @@ Project Sageframe is designed primarily for **students and young professionals**
 *   **Mood-Aware Task Triage:** Implementation of a simple mood check-in mechanism that intelligently curates and suggests tasks (e.g., deep work, creative, de-stressing activities) aligning with the user's current emotional and energy state, adapted for both desktop and mobile interaction patterns.
 *   **Proactive Social Scheduling:** Functionality to analyze calendar availability against relationship-based tasks, proactively suggesting and facilitating the scheduling of social and professional engagements to maintain networks, integrating with platform-native calendar/contact systems where possible.
 *   **Intelligent Curation via Smart Tags:** A frictionless input system allowing users to quickly capture diverse information (e.g., `@movie`, `@book`) using simple tags, with the assistant automatically enriching and organizing this content.
-*   **Short Notes Ingestion:** A feature enabling the digital capture of various physical short notes (e.g., sticky notes, brainstorming jottings, doodles, calculations) via advanced OCR and image recognition, integrating these captures directly into the user's digital workflow. This will primarily leverage mobile camera capabilities for capture, with desktop integration for viewing and organization.
+*   **File Ingestion and Information Extraction:** A feature enabling users to import bills or notes (as images or PDFs). The system will extract key information (raw text, entities like dates and amounts, and suggested tasks) and make it actionable (e.g., with one-click task creation). This feature will be available on both desktop (file import) and mobile (camera capture and file import).
 
 **Out of Scope (For Future Consideration):**
 
@@ -67,8 +67,8 @@ To ensure a focused and impactful initial release, features such as Gamified Goa
 
 1.  **User Willingness for Personal Data Sharing:** We assume that our target users (students, young professionals) will be comfortable and willing to share personal and contextual data (e.g., mood, calendar, task details) with Sageframe, trusting its commitment to privacy and seeing significant value in the intelligent, empathetic features enabled by this data.
 2.  **Technical Feasibility of Empathetic AI Persona:** It is assumed that we can successfully develop and implement a "Jarvis Co-Pilot" AI persona that is perceived by users as genuinely helpful, calm, and supportive, without crossing into intrusive or "creepy" territory.
-3.  **High Accuracy of Multi-Modal Content Ingestion:** We assume that current or near-future OCR and image recognition technologies can achieve a high level of accuracy and reliability in digitizing diverse physical "short notes" (including various handwriting styles, doodles, and calculations), making this feature genuinely useful rather than a source of frustration.
-4.  **User Adaptability to Novel Productivity Paradigms:** We assume that our target audience is open and willing to adopt new interaction paradigms and habits (e.g., regular mood check-ins, smart tagging conventions, physical note digitization) necessary to fully leverage Sageframe's unique, well-being-centric approach to productivity.
+3.  **High Accuracy of Multi-Modal Content Ingestion:** We assume that current or near-future OCR, text extraction, and AI vision technologies can achieve a high level of accuracy and reliability in digitizing and extracting structured information from diverse documents (including bills, receipts, and handwritten notes), making this feature genuinely useful rather than a source of frustration.
+4.  **User Adaptability to Novel Productivity Paradigms:** We assume that our target audience is open and willing to adopt new interaction paradigms and habits (e.g., regular mood check-ins, smart tagging conventions, file ingestion) necessary to fully leverage Sageframe's unique, well-being-centric approach to productivity.
 
 ---
 
@@ -79,8 +79,8 @@ To ensure a focused and impactful initial release, features such as Gamified Goa
     1.  **Multi-Platform Development & UX:** Supporting both Windows and Android introduces a constraint to design and develop for two distinct user experiences (desktop with mouse/keyboard vs. mobile with touch). This requires careful UI/UX adaptation and may impact development complexity and timeline.
     2.  **Strict Privacy by Design:** The project is fundamentally constrained by a commitment to user privacy. This mandates a privacy-first approach to all feature development, particularly those handling sensitive user data, and must be consistently implemented across both platforms.
     3.  **Platform & OS Dependencies:** Features requiring deep system integration (e.g., haptic feedback on Android, system-wide shortcuts on Windows, calendar/contact access) are inherently dependent on the permissions and APIs provided by each specific operating system.
-    4.  **Third-Party API Reliance:** The use of external APIs for functionalities like content enrichment and OCR is subject to the constraints of those third-party providers, including potential rate limits, costs, and service reliability, which must be managed for both platforms.
-    5.  **Handwriting & Image Recognition Accuracy:** The "Short Notes Ingestion" feature is constrained by the current state of OCR and image recognition technology. Its success is dependent on achieving high accuracy across diverse capture conditions.
+    4.  **Third-Party API Reliance:** The use of external APIs for functionalities like content enrichment and information extraction is subject to the constraints of those third-party providers, including potential rate limits, costs, and service reliability, which must be managed for both platforms.
+    5.  **Information Extraction Accuracy:** The "File Ingestion and Information Extraction" feature is constrained by the current state of OCR, AI vision, and text extraction technology. Its success is dependent on achieving high accuracy across diverse document types and qualities.
 
 ---
 
@@ -89,7 +89,7 @@ To ensure a focused and impactful initial release, features such as Gamified Goa
 1.  **Third-Party API Providers:** Sageframe will have critical dependencies on various external API services to power its core features:
     *   **Calendar & Contacts APIs:** For "Proactive Social Scheduling" (e.g., Google Calendar API, Microsoft Graph API, native mobile/desktop OS contact APIs).
     *   **Content Enrichment APIs:** For "Intelligent Curation via Smart Tags" (e.g., APIs for film databases, book information, general knowledge bases).
-    *   **OCR Services:** For "Short Notes Ingestion," requiring access to robust Optical Character Recognition APIs or SDKs.
+    *   **Information Extraction APIs:** For "File Ingestion and Information Extraction," requiring access to robust services like Azure Cognitive Services (for invoices), OpenAI Vision (for general notes/images), and Google Cloud Vision (for general OCR).
 2.  **Operating System Platforms:** The project is directly dependent on the specific APIs, SDKs, and development tools provided by **Microsoft for the Windows platform** and **Google for the Android platform**.
 3.  **UX/UI Design Resources:** The project will be dependent on dedicated UX/UI design expertise with proficiency in creating intuitive and consistent user experiences for both **desktop (Windows) and mobile (Android) applications**.
 4.  **Multi-Platform User Research & Testing:** Continuous validation of the AI persona, features, and overall usability will rely on access to a representative group of target users and appropriate testing environments for **both Windows and Android platforms**.

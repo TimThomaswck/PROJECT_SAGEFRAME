@@ -18,6 +18,7 @@ from app.modules.tasks.models import (
     TaskUpdateSchema,
     TaskPriority,
     TaskComplexity,
+    TaskDependencyType,
     VALID_STATUSES,
     MAX_TITLE_LENGTH,
     MAX_DESCRIPTION_LENGTH,
@@ -46,13 +47,21 @@ class TestTaskSchema:
             description="A detailed description",
             due_date=due,
             status="in_progress",
-            project_id=1
+            project_id=1,
+            start_date=due - timedelta(days=3),
+            end_date=due + timedelta(days=1),
+            depends_on_task_id=2,
+            dependency_type=TaskDependencyType.FINISH_TO_START,
         )
         assert schema.title == "Full Task"
         assert schema.description == "A detailed description"
         assert schema.due_date == due
         assert schema.status == "in_progress"
         assert schema.project_id == 1
+        assert schema.start_date == due - timedelta(days=3)
+        assert schema.end_date == due + timedelta(days=1)
+        assert schema.depends_on_task_id == 2
+        assert schema.dependency_type == TaskDependencyType.FINISH_TO_START
     
     def test_title_whitespace_stripped(self):
         """Test that title whitespace is stripped."""
@@ -117,6 +126,23 @@ class TestTaskSchema:
         due = datetime.now(timezone.utc) + timedelta(days=30)
         schema = TaskSchema(title="Task", due_date=due)
         assert schema.due_date == due
+
+    def test_start_end_date_validation(self):
+        """Ensure start_date cannot be after end_date."""
+        start = datetime.now(timezone.utc)
+        end = start + timedelta(days=2)
+        schema = TaskSchema(title="Timeline", start_date=start, end_date=end)
+        assert schema.start_date == start
+        assert schema.end_date == end
+        with pytest.raises(ValidationError):
+            TaskSchema(title="Bad Timeline", start_date=end, end_date=start)
+
+    def test_dependency_type_validation(self):
+        """Validate dependency type enum enforces allowed values."""
+        schema = TaskSchema(title="Dependent", dependency_type=TaskDependencyType.START_TO_START)
+        assert schema.dependency_type == TaskDependencyType.START_TO_START
+        with pytest.raises(ValidationError):
+            TaskSchema(title="InvalidDep", dependency_type="invalid")
     
     def test_due_date_past_is_valid(self):
         """Test past due date is valid (no restriction)."""
