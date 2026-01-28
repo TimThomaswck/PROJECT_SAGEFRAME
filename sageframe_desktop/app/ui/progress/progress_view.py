@@ -304,23 +304,31 @@ class ProgressView(QWidget):
     def _load_data(self):
         """Load and display progress data."""
         try:
+            if not hasattr(self, 'gamification_service') or self.gamification_service is None:
+                return
+                
             stats = self.gamification_service.get_progress_stats()
             
             # Update level
-            self.level_label.setText(f"Level {stats['current_level']}")
+            if hasattr(self, 'level_label'):
+                self.level_label.setText(f"Level {stats['current_level']}")
             
             # Update XP
-            self.xp_label.setText(f"XP: {stats['current_xp']}")
+            if hasattr(self, 'xp_label'):
+                self.xp_label.setText(f"XP: {stats['current_xp']}")
             
             # Update next level info
             xp_remaining = stats['xp_for_next_level'] - stats['xp_in_current_level']
-            self.next_level_label.setText(f"Next level: {xp_remaining} XP remaining")
+            if hasattr(self, 'next_level_label'):
+                self.next_level_label.setText(f"Next level: {xp_remaining} XP remaining")
             
             # Animate progress bar
-            self.progress_bar.animateTo(stats['progress_percentage'])
+            if hasattr(self, 'progress_bar'):
+                self.progress_bar.animateTo(stats['progress_percentage'])
             
             # Update tasks completed
-            self.tasks_label.setText(f"📋 Tasks Completed\n{stats['total_tasks_completed']}")
+            if hasattr(self, 'tasks_label'):
+                self.tasks_label.setText(f"📋 Tasks Completed\n{stats['total_tasks_completed']}")
             
             # Update achievement unlock status
             tasks_completed = stats['total_tasks_completed']

@@ -221,8 +221,11 @@ class ProjectService:
     
     def close(self):
         """Close database session if owned by this service."""
-        if self._owns_session:
-            self._db.close()
+        if self._owns_session and self._db:
+            try:
+                self._db.close()
+            except Exception:
+                pass  # Session might already be closed
     
     def __enter__(self):
         """Context manager entry."""

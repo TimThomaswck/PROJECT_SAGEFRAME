@@ -65,14 +65,21 @@ class TaskService:
     def close(self):
         """Close the database session if owned by this service."""
         if self._owns_session and self._session:
-            self._session.close()
+            try:
+                self._session.close()
+            except Exception:
+                pass  # Session might already be closed
             self._session = None
     
     @property
     def session(self) -> Session:
-        """Get the database session."""
+        """Get the database session, reopening if needed."""
         if self._session is None:
-            raise RuntimeError("Service session is closed")
+            if self._owns_session:
+                # Reopen the session if we own it and it was closed
+                self._session = SessionLocal()
+            else:
+                raise RuntimeError("Service session is closed")
         return self._session
     
     def create_task(
