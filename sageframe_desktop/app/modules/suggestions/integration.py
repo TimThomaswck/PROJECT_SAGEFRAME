@@ -69,8 +69,10 @@ class MoodSuggestionIntegration(QObject):
             energy_level: User's current energy level
             user_activity_state: Current user activity state
         """
+        # If no tasks available, emit fallback suggestions directly
         if not self._available_tasks:
-            # No tasks available for suggestions
+            fallback_suggestions = self._get_fallback_suggestions(mood, energy_level)
+            self.suggestionsReady.emit(fallback_suggestions)
             return
         
         try:
@@ -84,6 +86,9 @@ class MoodSuggestionIntegration(QObject):
             )
             
             if not response.suggestions or not response.should_display:
+                # Emit fallback suggestions if no valid suggestions
+                fallback_suggestions = self._get_fallback_suggestions(mood, energy_level)
+                self.suggestionsReady.emit(fallback_suggestions)
                 return
             
             # Enhance suggestions with empathetic messages via copilot service
@@ -97,8 +102,10 @@ class MoodSuggestionIntegration(QObject):
             self.suggestionsReady.emit(suggestions_with_messages)
             
         except Exception as e:
-            # Log error but don't crash
+            # Log error and emit fallback generic suggestions
             print(f"Error generating suggestions: {e}")
+            fallback_suggestions = self._get_fallback_suggestions(mood, energy_level)
+            self.suggestionsReady.emit(fallback_suggestions)
     
     def _enhance_suggestions_with_messages(
         self,
@@ -164,6 +171,78 @@ class MoodSuggestionIntegration(QObject):
             enhanced.append(enhanced_suggestion)
         
         return enhanced
+    
+    def _get_fallback_suggestions(self, mood: str, energy_level: str) -> List[Dict]:
+        """Generate generic fallback suggestions when AI fails.
+        
+        Provides motivational tips and productivity advice.
+        
+        Args:
+            mood: User's current mood
+            energy_level: User's current energy level
+            
+        Returns:
+            List of fallback suggestion dictionaries
+        """
+        # Generic productivity tips by energy level
+        tips_by_energy = {
+            "high": [
+                "🚀 **Tackle Your Most Challenging Task** - Your energy is high! This is the perfect time to work on complex or creative tasks that require deep focus.",
+                "💪 **Break Through That Roadblock** - High energy is ideal for problem-solving. Pick a task you've been avoiding and power through it.",
+                "🎯 **Start a Big Project** - Use this momentum to make significant progress on important long-term goals.",
+            ],
+            "medium": [
+                "📋 **Work Through Your List** - You're in a balanced state. Focus on steady progress through medium-priority tasks.",
+                "🔄 **Review and Organize** - Great time to organize your workspace, review notes, or plan tomorrow's tasks.",
+                "💼 **Handle Administrative Tasks** - Moderate energy is perfect for emails, calls, and routine work.",
+            ],
+            "low": [
+                "🌱 **Start Small** - Low energy? No problem. Pick easy, satisfying tasks to build momentum.",
+                "📚 **Learning Mode** - Use this time for light reading, watching tutorials, or browsing inspiration.",
+                "🧘 **Self-Care First** - Consider a short break, stretch, or meditation before diving back in.",
+            ],
+        }
+        
+        # Motivational snippets
+        motivational_quotes = [
+            "✨ **Remember**: Progress over perfection. Any step forward is a win.",
+            "💡 **Tip**: Breaking tasks into 5-minute chunks makes them less overwhelming.",
+            "🌟 **Insight**: Your brain works best with regular breaks. Don't forget to rest!",
+            "🎨 **Approach**: Sometimes changing your environment can boost creativity.",
+            "⏰ **Strategy**: Time-blocking can help you stay focused. Try 25-minute work sessions.",
+        ]
+        
+        # Select tips based on energy level
+        energy_tips = tips_by_energy.get(energy_level.lower(), tips_by_energy["medium"])
+        
+        # Build fallback suggestions
+        suggestions = []
+        
+        # Add 2 energy-specific tips
+        for tip in energy_tips[:2]:
+            suggestions.append({
+                "task_name": "Productivity Tip",
+                "task_id": "generic",
+                "reasoning": tip,
+                "copilot_message": tip,
+                "mood_context": mood,
+                "energy_context": energy_level,
+                "is_generic": True,
+            })
+        
+        # Add 1 motivational quote
+        import random
+        suggestions.append({
+            "task_name": "Daily Motivation",
+            "task_id": "generic",
+            "reasoning": random.choice(motivational_quotes),
+            "copilot_message": random.choice(motivational_quotes),
+            "mood_context": mood,
+            "energy_context": energy_level,
+            "is_generic": True,
+        })
+        
+        return suggestions
     
     @staticmethod
     def _energy_to_level(energy_level: str) -> int:

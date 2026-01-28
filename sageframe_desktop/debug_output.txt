@@ -1,0 +1,24 @@
+=== STDOUT ===
+DEBUG _on_copilot_message_ready: message_text = Good evening! Welcome to your dashboard. It's a peaceful space here—you might like to check in with 
+DEBUG: Calling display_message with response_buttons=False
+
+
+=== STDERR ===
+C:\Users\LEGION\Documents\PROJECT_SAGEFRAME\sageframe_desktop\app\main_window.py:360: RuntimeWarning: Failed to disconnect (<bound method MainWindow._on_copilot_message_ready of <app.main_window.MainWindow(0x254066e9fa0) at 0x00000254099DAB80>>) from signal "messageReady(QString)".
+  self.copilot_vm.messageReady.disconnect(self._on_copilot_message_ready)
+QFont::setPointSize: Point size <= 0 (-1), must be greater than 0
+QFont::setPointSize: Point size <= 0 (-1), must be greater than 0
+QFont::setPointSize: Point size <= 0 (-1), must be greater than 0
+QFont::setPointSize: Point size <= 0 (-1), must be greater than 0
+QFont::setPointSize: Point size <= 0 (-1), must be greater than 0
+QFont::setPointSize: Point size <= 0 (-1), must be greater than 0
+QFont::setPointSize: Point size <= 0 (-1), must be greater than 0
+QFont::setPointSize: Point size <= 0 (-1), must be greater than 0
+QFont::setPointSize: Point size <= 0 (-1), must be greater than 0
+QFont::setPointSize: Point size <= 0 (-1), must be greater than 0
+QFont::setPointSize: Point size <= 0 (-1), must be greater than 0
+QFont::setPointSize: Point size <= 0 (-1), must be greater than 0
+QFont::setPointSize: Point size <= 0 (-1), must be greater than 0
+QFont::setPointSize: Point size <= 0 (-1), must be greater than 0
+QFont::setPointSize: Point size <= 0 (-1), must be greater than 0
+QFont::setPointSize: Point size <= 0 (-1), must be greater than 0

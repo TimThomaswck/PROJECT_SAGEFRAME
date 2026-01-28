@@ -32,18 +32,24 @@ FR14: A User can see their progress through a gamified system (levels, XP) based
 FR15: A User can capture unstructured information (e.g., thoughts, ideas, notes) into a quick-capture inbox.
 FR16: A User can capture information using smart tags (e.g., `@movie`, `@book`) for automatic categorization and enrichment.
 FR17: The System can automatically enrich tagged content with relevant metadata from external sources.
-FR18: A User can capture the content of a physical short note by taking a picture of it.
-FR19: The System can convert the image of a note into editable text using OCR.
+FR18: A user can import a bill or note (image/PDF) into the application.
+FR19: The system can extract key information (raw text, entities, suggested tasks) from the imported file.
 FR20: A User can connect their external calendar (e.g., Google Calendar) for bi-directional synchronization.
 FR21: The System can read the user's calendar to identify free/busy times.
 FR22: The System can create, update, and delete events in the user's external calendar.
 FR23: The System can proactively suggest scheduling social or professional engagements based on calendar availability and user tasks.
 FR24: A User's data must be stored on their local device by default.
-FR25: A User can choose to sync their data to their personal user-controlled cloud storage (e.g., Google Drive).
-FR26: A User can export all their data in a common, machine-readable format (e.g., Markdown, JSON).
 FR27: The System must operate on the Windows desktop platform.
-FR28: The System must provide a user-accessible API for connecting to third-party automation services (e.g., IFTTT, Zapier).
-FR29: The System must support multiple users (multi-tenancy) with complete data isolation between them.
+FR30: The user can perform one-click actions on the extracted information (e.g., create a task).
+FR31: A user can break down a task into a checklist of subtasks.
+FR32: The system can remind the user of overdue or untouched tasks.
+FR33: A user can manually estimate the energy/effort required for a task (e.g., small, medium, large).
+FR34: A user can create a time block for a task and push it to their Google Calendar.
+FR35: The system can sync events from SageFrame to Google Calendar (one-way).
+FR36: The system can provide basic intelligent scheduling suggestions.
+FR37: A user can track simple habits with daily checkmarks.
+FR38: A user can use a Pomodoro timer to help them focus.
+FR39: A user can use tags and smart filters with AND/OR logic to organize and find information.
 
 ### NonFunctional Requirements
 
@@ -88,8 +94,6 @@ NFR11: Data Recovery: In the event of an application crash or unexpected shutdow
 
 ### FR Coverage Map
 
-### FR Coverage Map
-
 FR1: Epic 1 - Initial System Setup & Core Experience
 FR2: Epic 1 - Initial System Setup & Core Experience
 FR3: Epic 1 - Initial System Setup & Core Experience
@@ -114,11 +118,18 @@ FR21: Epic 4 - Intelligent Calendar & Proactive Scheduling
 FR22: Epic 4 - Intelligent Calendar & Proactive Scheduling
 FR23: Epic 4 - Intelligent Calendar & Proactive Scheduling
 FR24: Epic 5 - Secure Data Management & Portability
-FR25: Epic 5 - Secure Data Management & Portability
-FR26: Epic 5 - Secure Data Management & Portability
 FR27: Epic 6 - Extensibility & Platform Integration
-FR28: Epic 6 - Extensibility & Platform Integration
-FR29: Epic 6 - Extensibility & Platform Integration
+FR30: Epic 3 - Effortless Information Capture & Curation
+FR31: Epic 2 - Comprehensive Task & Project Management
+FR32: Epic 2 - Comprehensive Task & Project Management
+FR33: Epic 2 - Comprehensive Task & Project Management
+FR34: Epic 4 - Intelligent Calendar & Proactive Scheduling
+FR35: Epic 4 - Intelligent Calendar & Proactive Scheduling
+FR36: Epic 4 - Intelligent Calendar & Proactive Scheduling
+FR36: Epic 4 - Intelligent Calendar & Proactive Scheduling
+FR37: Epic 7 - Focus and Well-being
+FR38: Epic 7 - Focus and Well-being
+FR39: Epic 3 - Effortless Information Capture & Curation
 
 ## Epic List
 
@@ -381,11 +392,58 @@ So that I feel motivated, encouraged, and rewarded for my productivity efforts.
 *   **Given** I am viewing my gamified progress,
     **Then** the display is fluid and responsive, adhering to NFR2.
 
-### Epic 3: Effortless Information Capture & Curation
-Users can quickly and easily capture various forms of information, from quick thoughts to physical notes, and have them intelligently organized and enriched for future retrieval.
-**FRs covered:** FR15, FR16, FR17, FR18, FR19
+### Story 2.7: Hierarchical Tasks (1-level subtasks)
 
-### Story 3.2: Implement Smart Tagging for Automatic Categorization
+As a user,
+I want to break down my tasks into a simple checklist of subtasks,
+So that I can manage more complex tasks without being overwhelmed.
+
+**Acceptance Criteria:**
+
+*   **Given** I am viewing a task,
+    **When** I choose to add a subtask,
+    **Then** I can add, edit, and delete subtasks in a checklist format.
+*   **Given** a task has subtasks,
+    **When** I mark a subtask as complete,
+    **Then** the subtask is visually marked as done.
+*   **Given** a task has subtasks,
+    **Then** the main task's progress is visually updated as I complete subtasks.
+
+### Story 2.8: Basic Task Suggestions (Overdue/Untouched Reminders)
+
+As a user,
+I want to be reminded of overdue or untouched tasks,
+So that nothing falls through the cracks.
+
+**Acceptance Criteria:**
+
+*   **Given** a task is overdue,
+    **When** I view my task list,
+    **Then** the system will highlight it.
+*   **Given** a task has not been updated for a configurable period (e.g., 7 days),
+    **When** I view my task list,
+    **Then** the system will suggest I review it.
+
+### Story 2.9: Manual Energy/Effort Estimation
+
+As a user,
+I want to manually estimate the energy/effort required for a task (e.g., small, medium, large),
+So that I can better plan my day based on my energy levels.
+
+**Acceptance Criteria:**
+
+*   **Given** I am creating or editing a task,
+    **When** I choose to estimate the effort,
+    **Then** I can select an energy/effort level from a predefined list (e.g., Small, Medium, Large).
+*   **Given** a task has an energy/effort level,
+    **When** I view my task list,
+    **Then** the energy/effort level is clearly displayed.
+
+### Epic 3: Effortless Information Capture & Curation
+Users can quickly and easily capture various forms of information—from unstructured thoughts to structured data in bills and notes—and have it intelligently organized, enriched, and made actionable for future retrieval and task management.
+**FRs covered:** FR15, FR16, FR17, FR18, FR19, FR30
+
+### Story 3.1: Implement Smart Tagging for Automatic Categorization
 
 As a user,
 I want to use smart tags (e.g., `@movie`, `@book`) when capturing information,
@@ -400,11 +458,11 @@ So that my content is automatically categorized and easily retrievable.
     **When** I later view or search my captured information,
     **Then** the smart tags facilitate filtering, categorization, or searching for content associated with that tag.
 *   **Given** a smart tag is recognized,
-    **Then** the system stores the tag and its associated content in a structured way that supports later enrichment (Story 3.3).
+    **Then** the system stores the tag and its associated content in a structured way that supports later enrichment (Story 3.2).
 *   **Given** I am entering smart tags,
     **Then** the input experience is responsive and fluid (NFR1, NFR2).
 
-### Story 3.3: Automatically Enrich Tagged Content from External Sources
+### Story 3.2: Automatically Enrich Tagged Content from External Sources
 
 As a user,
 I want content tagged with smart tags (e.g., `@movie`, `@book`) to be automatically enriched with relevant metadata from external sources,
@@ -412,7 +470,7 @@ So that I have more complete and useful information without manual effort.
 
 **Acceptance Criteria:**
 
-*   **Given** information containing a recognized smart tag (e.g., `@movie: Inception`) is saved (from Story 3.2),
+*   **Given** information containing a recognized smart tag (e.g., `@movie: Inception`) is saved (from Story 3.1),
     **When** the system processes this tagged content,
     **Then** it automatically queries an appropriate external source (e.g., a movie database API for `@movie` tags).
 *   **Given** an external source is successfully queried,
@@ -422,32 +480,56 @@ So that I have more complete and useful information without manual effort.
 *   **Given** an external source query fails or returns no data,
     **Then** the system gracefully handles the failure, possibly logging the error without disrupting the user experience, and does not display incomplete or incorrect enrichment.
 
-### Story 3.4: Implement Image-Based Short Notes Ingestion
+### Story 3.3: Import and Extract Information from Bills and Notes
 
 As a user,
-I want to capture the content of a physical short note by taking a picture of it,
-So that I can digitize my handwritten or printed notes quickly and easily.
+I can import a bill or note (image/PDF) and have SageFrame extract key info and store it, with one-click actions to create tasks.
 
 **Acceptance Criteria:**
 
-*   **Given** I have a physical short note,
-    **When** I initiate the "capture note via image" functionality (e.g., through a dedicated button or menu option),
-    **Then** the application activates the device's camera (if applicable, e.g., on Android), or allows selection of an image file (on Windows).
-*   **Given** an image of a short note is provided (either captured or selected),
-    **When** the image is processed by the system,
-    **Then** the image is stored securely and associated with my notes, preparing it for OCR (Story 3.5).
-*   **Given** the image is captured or selected,
-    **Then** the process is responsive and provides visual feedback (NFR1, NFR2).
-*   **Given** the platform priority is Windows first (from Architecture),
-    **Then** this functionality must be implemented and tested thoroughly on Windows first, supporting image file selection.
+*   **Given** the user is in the application,
+    **When** they initiate file import via drag/drop or a file picker,
+    **Then** the import works for supported file types (.png, .jpg, .pdf).
+*   **Given** a file is imported,
+    **When** the import is complete,
+    **Then** the original file is stored locally (e.g., under `data/ingest/<uuid>/original.ext`) and is viewable later.
+*   **Given** a file is imported,
+    **When** the extraction process runs,
+    **Then** it does not freeze the UI (runs in a separate thread/asynchronously).
+*   **Given** a PDF with selectable text is imported,
+    **When** the extraction runs,
+    **Then** the text is extracted locally without an API call.
+*   **Given** an image-based file or PDF without selectable text is imported,
+    **When** the extraction runs,
+    **Then** an external API is used for OCR and data extraction, returning structured JSON.
+*   **Given** the extraction is complete,
+    **When** the results are displayed,
+    **Then** the extracted information is shown to the user and is editable.
+*   **Given** the extracted information is displayed,
+    **When** the user clicks the "Create task" action,
+    **Then** a new task is created using the extracted information.
+*   **Given** the user re-runs extraction on the same file,
+    **When** the extraction completes,
+    **Then** it overwrites or versions the previous results, avoiding duplication.
 
-*   **Given** the OCR process is resource-intensive,
-    **Then** it operates efficiently without significantly impacting overall application performance (NFR1, NFR2).
+### Story 3.4: Tags & Smart Filters
 
-### Story 3.2: Implement Smart Tagging for Automatic Categorization
+As a user,
+I want to use tags and smart filters with AND/OR logic,
+So that I can organize and find my information more effectively.
 
-*   **Given** the OCR process is resource-intensive,
-    **Then** it operates efficiently without significantly impacting overall application performance (NFR1, NFR2).
+**Acceptance Criteria:**
+
+*   **Given** I am creating or editing a note or task,
+    **When** I choose to add tags,
+    **Then** I can add one or more tags.
+*   **Given** I am viewing my notes or tasks,
+    **When** I choose to filter,
+    **Then** I can filter them by one or more tags.
+*   **Given** I am filtering,
+    **When** I apply multiple filters,
+    **Then** I can use AND/OR logic to combine them.
+*   (Note: This does not include a full rule engine, just simple filtering logic).
 
 ### Epic 4: Intelligent Calendar & Proactive Scheduling
 Users can connect their existing calendars, have Sageframe intelligently identify free time, and proactively suggest social and professional engagements, reducing scheduling friction.
@@ -456,8 +538,8 @@ Users can connect their existing calendars, have Sageframe intelligently identif
 ### Story 4.1: Connect External Calendar for Bi-Directional Synchronization
 
 As a user,
-I want to connect my external calendar (e.g., Google Calendar) for bi-directional synchronization,
-So that Sageframe can have an accurate, up-to-date view of my schedule and help manage my time.
+I want to connect my external calendar (e.g., Google Calendar) for bi-directional synchronization, including the ability to push SageFrame events one-way to the external calendar,
+So that Sageframe can have an accurate, up-to-date view of my schedule and help manage my time, and I can see all my SageFrame events in my external calendar.
 
 **Acceptance Criteria:**
 
@@ -469,7 +551,7 @@ So that Sageframe can have an accurate, up-to-date view of my schedule and help 
     **Then** Sageframe performs an initial synchronization of my calendar events.
 *   **Given** the calendar is connected,
     **When** a new event is created or updated in Sageframe,
-    **Then** the change is reflected in my external calendar.
+    **Then** the change is reflected in my external calendar (this includes one-way sync functionality from Sageframe to external calendar, fulfilling FR35).
 *   **Given** the calendar is connected,
     **When** a new event is created or updated in my external calendar,
     **Then** the change is reflected in Sageframe.
@@ -538,9 +620,39 @@ So that I can maintain a balanced life, nurture relationships, and optimize my s
 *   **Given** I am receiving proactive suggestions,
     **Then** the process is responsive and fluid (NFR1, NFR2).
 
+### Story 4.5: Time Blocking with Google Calendar Integration
+
+As a user,
+I want to create a time block for a task and push it to my Google Calendar,
+So that I can dedicate specific time for my tasks.
+
+**Acceptance Criteria:**
+
+*   **Given** I am viewing a task,
+    **When** I choose to create a time block,
+    **Then** I can create a time block with a start and end time.
+*   **Given** I have created a time block,
+    **When** I choose to push it to my calendar,
+    **Then** it is sent to my connected Google Calendar as an event (relying on functionality from Story 4.3).
+
+### Story 4.6: Intelligent Scheduling (Lite)
+
+As a user,
+I want the system to provide basic intelligent scheduling suggestions,
+So that I can get help with planning my day.
+
+**Acceptance Criteria:**
+
+*   **Given** my connected calendar,
+    **When** I ask for scheduling suggestions,
+    **Then** the system can identify my free slots (relying on functionality from Story 4.2).
+*   **Given** my task list,
+    **When** I ask for scheduling suggestions,
+    **Then** the system can suggest which tasks to work on based on their due date and my free slots.
+
 ### Epic 5: Secure Data Management & Portability
-Users have complete control over their personal data, knowing it's stored locally by default, can be securely synced to their own cloud, and is easily exportable, ensuring privacy and no vendor lock-in.
-**FRs covered:** FR24, FR25, FR26
+Users have control over their personal data, knowing it's stored locally by default, ensuring privacy.
+**FRs covered:** FR24
 
 ### Story 5.1: Implement Local-First Data Storage as Default
 
@@ -559,50 +671,9 @@ So that I have complete control over my information and can ensure my privacy.
     **Then** the application adheres to standard operating system security measures to protect the data from unauthorized access (as per NFR3).
 *   **Given** I am using the application,
     **Then** the local data storage is efficient and does not negatively impact application performance (NFR1, NFR2).
-
-### Story 5.2: Enable User-Controlled Cloud Sync
-
-As a user,
-I want to choose to sync my data to my personal user-controlled cloud storage (e.g., Google Drive),
-So that I can back up my data, access it across multiple devices, and maintain full control over my cloud data.
-
-**Acceptance Criteria:**
-
-*   **Given** I have a local data store (from Story 5.1),
-    **When** I navigate to the application settings,
-    **Then** I am presented with an option to connect to supported personal cloud storage providers (e.g., Google Drive).
-*   **Given** I select a cloud provider and successfully authenticate (using OAuth 2.0 as per Architecture),
-    **When** the connection is established,
-    **Then** my local data is securely synchronized with my chosen cloud storage.
-*   **Given** data is synchronized to cloud storage,
-    **Then** the synchronization process utilizes data encryption during transit (HTTPS/TLS as per Architecture) and respects NFR4 (Cloud Sync Security).
-*   **Given** any synchronization issue occurs (as per NFR8),
-    **Then** the system handles the error gracefully, attempts to retry, and provides a clear prompt for manual intervention if necessary (NFR9).
-*   **Given** I am performing any operation related to cloud sync,
-    **Then** the interaction is responsive and fluid (NFR1, NFR2).
-
-### Story 5.3: Implement Full Data Export
-
-As a user,
-I want to be able to export all my data from Sageframe in a common, machine-readable format,
-So that I am never locked into the platform and can easily migrate my information if needed.
-
-**Acceptance Criteria:**
-
-*   **Given** I have data stored in Sageframe (from Story 5.1 and other stories),
-    **When** I initiate a data export from the application settings,
-    **Then** the system gathers all my relevant data (tasks, projects, notes, etc.).
-*   **Given** all data is gathered,
-    **When** the export process is complete,
-    **Then** a file (or set of files) containing my data is generated in a common, machine-readable format (e.g., Markdown for notes, JSON or CSV for tasks/projects).
-*   **Given** the data is exported,
-    **Then** the export process is responsive (NFR1, NFR2) and provides clear feedback on its progress and completion.
-*   **Given** the export format is common,
-    **Then** the exported data should be easily parsable by other applications or tools.
-
 ### Epic 6: Extensibility & Platform Integration
-Users can extend Sageframe's capabilities by connecting it to third-party automation tools and trust that the system operates reliably within its defined technical boundaries.
-**FRs covered:** FR27, FR28, FR29
+Users can trust that the system operates reliably within its defined technical boundaries by running Sageframe on the Windows desktop platform.
+**FRs covered:** FR27
 
 ### Story 6.1: Implement Windows Desktop Platform Support
 
@@ -622,44 +693,47 @@ So that I can use the application on my primary operating system.
 *   **Given** the application is built for Windows,
     **Then** the CI/CD pipeline (as per Architecture) produces a valid Windows installer or executable.
 
-### Story 6.2: Implement User-Accessible API for Automation
+### Epic 7: Focus and Well-being
+Users can improve their focus and build positive routines through integrated tools that support focused work sessions and simple habit tracking.
+**FRs covered:** FR37, FR38
 
-As a power user,
-I want Sageframe to provide a user-accessible API,
-So that I can connect it to third-party automation services like IFTTT and Zapier and create custom workflows.
+### Story 7.1: Simple Habit Tracker
 
-**Acceptance Criteria:**
-
-*   **Given** I am a power user interested in automation,
-    **When** I access the Sageframe settings or documentation,
-    **Then** I can find clear and comprehensive documentation for the user-accessible API (following OpenAPI Specification as per Architecture).
-*   **Given** I am using a third-party automation service (e.g., IFTTT, Zapier),
-    **When** I attempt to connect it to Sageframe using the provided API,
-    **Then** the connection is successful, and I can trigger actions in Sageframe or receive data from Sageframe via API calls.
-*   **Given** the API is accessed,
-    **Then** all API calls adhere to the defined RESTful API patterns, use standard HTTP status codes, and return JSON payloads for responses (as per Architecture).
-*   **Given** the API is exposed,
-    **Then** it includes rate limiting mechanisms (e.g., Token Bucket Algorithm as per Architecture) to prevent abuse and ensure stability.
-*   **Given** I am using the API,
-    **Then** interactions are responsive and reliable (NFR1, NFR10).
-
-### Story 6.3: Implement Multi-Tenancy Support
-
-As a service provider,
-I want the Sageframe system to securely support multiple users with complete data isolation,
-So that I can scale the platform to serve a growing user base while ensuring individual user privacy and data integrity.
+As a user,
+I want to track simple habits with daily checkmarks,
+So that I can build positive routines.
 
 **Acceptance Criteria:**
 
-*   **Given** multiple users are accessing the Sageframe cloud services (for features like optional cloud sync),
-    **When** any user interacts with their data,
-    **Then** their data is logically isolated from other users' data, preventing any cross-user data access.
-*   **Given** a new user signs up for Sageframe,
-    **Then** their data store is provisioned in a way that inherently enforces data isolation from existing users.
-*   **Given** a user is operating on their data,
-    **Then** the system ensures that performance for one user does not significantly degrade due to the activity of other users (adhering to NFR5 and NFR6).
-*   **Given** the multi-tenancy architecture (as per Architecture) is implemented,
-    **Then** data security for each tenant adheres to NFR3 and NFR4.
+*   **Given** I am in the habit tracking section,
+    **When** I create a new habit,
+    **Then** I can create and name a new habit.
+*   **Given** a habit exists,
+    **When** I complete the habit for the day,
+    **Then** I can mark it as complete with a single click.
+*   **Given** a habit exists,
+    **When** I view my habits,
+    **Then** I can see my progress for the current week/month.
+*   (Note: No complex streak math or analytics are included in this story).
+
+### Story 7.2: Pomodoro & Focus Mode
+
+As a user,
+I want to use a Pomodoro timer to help me focus,
+So that I can work in focused bursts.
+
+**Acceptance Criteria:**
+
+*   **Given** I want to focus on a task,
+    **When** I start a timer,
+    **Then** I can start a Pomodoro timer (e.g., 25 minutes).
+*   **Given** the timer is running,
+    **When** I am in the application,
+    **Then** the application enters a "focus mode" with minimal UI distractions.
+*   **Given** the timer completes,
+    **When** the time is up,
+    **Then** the system notifies me to take a short break.
+*   (Note: No analytics or tracking of Pomodoro sessions is included in this story).
 
 <!-- Repeat for each epic in epics_list (N = 1, 2, 3...) -->
 

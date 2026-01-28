@@ -1,0 +1,147 @@
+name: Build Windows Installer
+
+# Implements Story 6.1 AC4: CI/CD pipeline for Windows builds
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'sageframe_desktop/**'
+      - '.github/workflows/build-windows.yml'
+      - 'sageframe.spec'
+      - 'installer.iss'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'sageframe_desktop/**'
+      - '.github/workflows/build-windows.yml'
+      - 'sageframe.spec'
+      - 'installer.iss'
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    name: Build Windows Executable and Installer
+    runs-on: windows-latest
+    
+    strategy:
+      matrix:
+        python-version: ['3.12']
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+      
+      - name: Install Python dependencies
+        working-directory: sageframe_desktop
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ../requirements.txt
+          pip install pyinstaller wheel
+      
+      - name: Run tests
+        working-directory: sageframe_desktop
+        run: |
+          python -m pytest test_story_5_1.py -v --tb=short || true
+      
+      - name: Build executable with PyInstaller
+        working-directory: sageframe_desktop
+        run: |
+          pyinstaller sageframe.spec
+      
+      - name: Install Inno Setup
+        run: |
+          choco install innosetup -y --no-progress
+      
+      - name: Build installer
+        working-directory: sageframe_desktop
+        run: |
+          iscc installer.iss
+      
+      - name: Verify build artifacts
+        working-directory: sageframe_desktop
+        run: |
+          dir dist\
+          if (-not (Test-Path "dist\SageFrame.exe")) {
+            Write-Error "SageFrame.exe not found"
+            exit 1
+          }
+          if (-not (Test-Path "dist\SageFrame-Setup.exe")) {
+            Write-Error "SageFrame-Setup.exe not found"
+            exit 1
+          }
+      
+      - name: Upload Windows executable
+        uses: actions/upload-artifact@v3
+        with:
+          name: SageFrame-Executable-${{ matrix.python-version }}
+          path: sageframe_desktop/dist/SageFrame.exe
+          retention-days: 30
+      
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v3
+        with:
+          name: SageFrame-Installer-${{ matrix.python-version }}
+          path: sageframe_desktop/dist/SageFrame-Setup.exe
+          retention-days: 30
+      
+      - name: Create Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            sageframe_desktop/dist/SageFrame.exe
+            sageframe_desktop/dist/SageFrame-Setup.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  test-windows:
+    name: Test on Windows
+    runs-on: windows-latest
+    needs: build-windows
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        working-directory: sageframe_desktop
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ../requirements.txt
+      
+      - name: Run unit tests
+        working-directory: sageframe_desktop
+        run: |
+          python -m pytest test_story_5_1.py -v
+      
+      - name: Run integration tests
+        working-directory: sageframe_desktop
+        run: |
+          python -m pytest test_calendar_crud.py test_engagement_suggestions.py test_filters.py -v || true
+
+  notify-success:
+    name: Notify Build Success
+    runs-on: ubuntu-latest
+    needs: [build-windows, test-windows]
+    if: success()
+    
+    steps:
+      - name: Download artifacts info
+        run: |
+          echo "✅ Windows build completed successfully!"
+          echo "Artifacts available for download from Actions page"

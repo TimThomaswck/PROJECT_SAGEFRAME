@@ -2,6 +2,7 @@
 
 import pytest
 from unittest.mock import Mock
+from datetime import datetime, timezone
 
 from app.core.undo_commands import (
     PropertyChangeCommand,
@@ -9,7 +10,10 @@ from app.core.undo_commands import (
     TextEditCommand,
     MultiCommandGroup,
     CriticalOperationCommand,
+    EditTaskCommand,
+    EditTaskPropertiesCommand,
 )
+from app.modules.tasks.models import TaskPriority, TaskComplexity
 
 
 class MockObject:
@@ -360,3 +364,317 @@ class TestCriticalOperationCommand:
 
         assert "Delete item" in cmd._confirmation_message
         assert "undo" in cmd._confirmation_message.lower()
+
+
+class TestEditTaskCommandWithProperties:
+    """Test EditTaskCommand with priority and complexity properties."""
+    
+    def test_edit_task_priority_only(self):
+        """Test editing only task priority."""
+        # Mock service
+        service = Mock()
+        task = Mock()
+        task.id = 1
+        task.title = "Test Task"
+        task.description = None
+        task.due_date = None
+        task.status = "todo"
+        task.priority = TaskPriority.MEDIUM
+        task.complexity = TaskComplexity.MODERATE
+        task.project_id = None
+        
+        service.get_task.return_value = task
+        
+        # Create command to change priority only
+        cmd = EditTaskCommand(
+            service=service,
+            task_id=1,
+            new_priority=TaskPriority.HIGH
+        )
+        
+        # Execute redo
+        cmd.redo()
+        
+        # Verify update was called with new priority
+        service.update_task.assert_called()
+        call_kwargs = service.update_task.call_args[1]
+        assert call_kwargs['priority'] == TaskPriority.HIGH
+        assert call_kwargs['complexity'] == TaskComplexity.MODERATE  # Unchanged
+    
+    def test_edit_task_complexity_only(self):
+        """Test editing only task complexity."""
+        service = Mock()
+        task = Mock()
+        task.id = 1
+        task.title = "Test Task"
+        task.description = None
+        task.due_date = None
+        task.status = "todo"
+        task.priority = TaskPriority.MEDIUM
+        task.complexity = TaskComplexity.MODERATE
+        task.project_id = None
+        
+        service.get_task.return_value = task
+        
+        cmd = EditTaskCommand(
+            service=service,
+            task_id=1,
+            new_complexity=TaskComplexity.COMPLEX
+        )
+        
+        cmd.redo()
+        
+        call_kwargs = service.update_task.call_args[1]
+        assert call_kwargs['priority'] == TaskPriority.MEDIUM  # Unchanged
+        assert call_kwargs['complexity'] == TaskComplexity.COMPLEX
+    
+    def test_edit_task_both_properties(self):
+        """Test editing both priority and complexity."""
+        service = Mock()
+        task = Mock()
+        task.id = 1
+        task.title = "Test Task"
+        task.description = None
+        task.due_date = None
+        task.status = "todo"
+        task.priority = TaskPriority.MEDIUM
+        task.complexity = TaskComplexity.MODERATE
+        task.project_id = None
+        
+        service.get_task.return_value = task
+        
+        cmd = EditTaskCommand(
+            service=service,
+            task_id=1,
+            new_priority=TaskPriority.HIGH,
+            new_complexity=TaskComplexity.COMPLEX
+        )
+        
+        cmd.redo()
+        
+        call_kwargs = service.update_task.call_args[1]
+        assert call_kwargs['priority'] == TaskPriority.HIGH
+        assert call_kwargs['complexity'] == TaskComplexity.COMPLEX
+    
+    def test_edit_task_undo_priority(self):
+        """Test undoing a priority change."""
+        service = Mock()
+        task = Mock()
+        task.id = 1
+        task.title = "Test Task"
+        task.description = None
+        task.due_date = None
+        task.status = "todo"
+        task.priority = TaskPriority.MEDIUM
+        task.complexity = TaskComplexity.MODERATE
+        task.project_id = None
+        
+        service.get_task.return_value = task
+        
+        cmd = EditTaskCommand(
+            service=service,
+            task_id=1,
+            new_priority=TaskPriority.HIGH
+        )
+        
+        # Redo (apply change)
+        cmd.redo()
+        first_call = service.update_task.call_args[1]
+        assert first_call['priority'] == TaskPriority.HIGH
+        
+        # Undo (restore original)
+        cmd.undo()
+        second_call = service.update_task.call_args[1]
+        assert second_call['priority'] == TaskPriority.MEDIUM
+    
+    def test_edit_task_undo_both_properties(self):
+        """Test undoing changes to both properties."""
+        service = Mock()
+        task = Mock()
+        task.id = 1
+        task.title = "Test Task"
+        task.description = None
+        task.due_date = None
+        task.status = "todo"
+        task.priority = TaskPriority.LOW
+        task.complexity = TaskComplexity.SIMPLE
+        task.project_id = None
+        
+        service.get_task.return_value = task
+        
+        cmd = EditTaskCommand(
+            service=service,
+            task_id=1,
+            new_priority=TaskPriority.HIGH,
+            new_complexity=TaskComplexity.COMPLEX
+        )
+        
+        cmd.redo()
+        cmd.undo()
+        
+        call_kwargs = service.update_task.call_args[1]
+        assert call_kwargs['priority'] == TaskPriority.LOW
+        assert call_kwargs['complexity'] == TaskComplexity.SIMPLE
+    
+    def test_edit_task_with_priority_string(self):
+        """Test editing priority with string value."""
+        service = Mock()
+        task = Mock()
+        task.id = 1
+        task.title = "Test Task"
+        task.description = None
+        task.due_date = None
+        task.status = "todo"
+        task.priority = TaskPriority.MEDIUM
+        task.complexity = TaskComplexity.MODERATE
+        task.project_id = None
+        
+        service.get_task.return_value = task
+        
+        cmd = EditTaskCommand(
+            service=service,
+            task_id=1,
+            new_priority="high"  # String value
+        )
+        
+        cmd.redo()
+        
+        call_kwargs = service.update_task.call_args[1]
+        assert call_kwargs['priority'] == "high"
+
+
+class TestEditTaskPropertiesCommand:
+    """Test EditTaskPropertiesCommand for property-specific changes."""
+    
+    def test_edit_priority_only(self):
+        """Test changing priority only."""
+        service = Mock()
+        task = Mock()
+        task.id = 1
+        task.priority = TaskPriority.MEDIUM
+        task.complexity = TaskComplexity.MODERATE
+        
+        service.get_task.return_value = task
+        
+        cmd = EditTaskPropertiesCommand(
+            service=service,
+            task_id=1,
+            new_priority=TaskPriority.HIGH
+        )
+        
+        assert "priority" in cmd.description.lower()
+        
+        cmd.redo()
+        
+        call_kwargs = service.update_task.call_args[1]
+        assert call_kwargs['priority'] == TaskPriority.HIGH
+        assert call_kwargs['complexity'] == TaskComplexity.MODERATE
+    
+    def test_edit_complexity_only(self):
+        """Test changing complexity only."""
+        service = Mock()
+        task = Mock()
+        task.id = 1
+        task.priority = TaskPriority.MEDIUM
+        task.complexity = TaskComplexity.MODERATE
+        
+        service.get_task.return_value = task
+        
+        cmd = EditTaskPropertiesCommand(
+            service=service,
+            task_id=1,
+            new_complexity=TaskComplexity.COMPLEX
+        )
+        
+        assert "complexity" in cmd.description.lower()
+        
+        cmd.redo()
+        
+        call_kwargs = service.update_task.call_args[1]
+        assert call_kwargs['priority'] == TaskPriority.MEDIUM
+        assert call_kwargs['complexity'] == TaskComplexity.COMPLEX
+    
+    def test_edit_both_properties(self):
+        """Test changing both priority and complexity."""
+        service = Mock()
+        task = Mock()
+        task.id = 1
+        task.priority = TaskPriority.LOW
+        task.complexity = TaskComplexity.SIMPLE
+        
+        service.get_task.return_value = task
+        
+        cmd = EditTaskPropertiesCommand(
+            service=service,
+            task_id=1,
+            new_priority=TaskPriority.HIGH,
+            new_complexity=TaskComplexity.COMPLEX
+        )
+        
+        assert "priority" in cmd.description.lower()
+        assert "complexity" in cmd.description.lower()
+        
+        cmd.redo()
+        
+        call_kwargs = service.update_task.call_args[1]
+        assert call_kwargs['priority'] == TaskPriority.HIGH
+        assert call_kwargs['complexity'] == TaskComplexity.COMPLEX
+    
+    def test_undo_property_change(self):
+        """Test undoing property changes."""
+        service = Mock()
+        task = Mock()
+        task.id = 1
+        task.priority = TaskPriority.MEDIUM
+        task.complexity = TaskComplexity.MODERATE
+        
+        service.get_task.return_value = task
+        
+        cmd = EditTaskPropertiesCommand(
+            service=service,
+            task_id=1,
+            new_priority=TaskPriority.HIGH,
+            new_complexity=TaskComplexity.COMPLEX
+        )
+        
+        cmd.redo()
+        first_call = service.update_task.call_args[1]
+        assert first_call['priority'] == TaskPriority.HIGH
+        
+        cmd.undo()
+        second_call = service.update_task.call_args[1]
+        assert second_call['priority'] == TaskPriority.MEDIUM
+        assert second_call['complexity'] == TaskComplexity.MODERATE
+    
+    def test_no_properties_specified_raises_error(self):
+        """Test that specifying no properties raises error."""
+        service = Mock()
+        task = Mock()
+        task.id = 1
+        task.priority = TaskPriority.MEDIUM
+        task.complexity = TaskComplexity.MODERATE
+        
+        service.get_task.return_value = task
+        
+        with pytest.raises(ValueError) as exc:
+            EditTaskPropertiesCommand(
+                service=service,
+                task_id=1
+                # No properties specified
+            )
+        
+        assert "At least one property" in str(exc.value)
+    
+    def test_task_not_found_raises_error(self):
+        """Test that missing task raises error."""
+        service = Mock()
+        service.get_task.return_value = None
+        
+        with pytest.raises(ValueError) as exc:
+            EditTaskPropertiesCommand(
+                service=service,
+                task_id=999,
+                new_priority=TaskPriority.HIGH
+            )
+        
+        assert "not found" in str(exc.value)

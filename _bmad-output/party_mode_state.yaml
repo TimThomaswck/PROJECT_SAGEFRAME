@@ -1,0 +1,9 @@
+---
+stepsCompleted: [1]
+workflowType: 'party-mode'
+user_name: 'Timothy'
+date: 'Monday, 26 January 2026'
+agents_loaded: true
+party_active: true
+exit_triggers: ['*exit', 'goodbye', 'end party', 'quit']
+---

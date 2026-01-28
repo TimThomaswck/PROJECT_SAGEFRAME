@@ -55,8 +55,12 @@ def main(enable_updater: bool = True):
         for file_name in os.listdir(fonts_path):
             if file_name.endswith((".ttf", ".otf")):
                 font_file_path = os.path.join(fonts_path, file_name)
-                if QFontDatabase.addApplicationFont(font_file_path) == -1:
+                font_id = QFontDatabase.addApplicationFont(font_file_path)
+                if font_id == -1:
                     print(f"Warning: Failed to load font from {font_file_path}", file=sys.stderr)
+                else:
+                    families = QFontDatabase.applicationFontFamilies(font_id)
+                    print(f"✓ Loaded font: {families} from {file_name}")
 
     # i18n
     translator = QTranslator()
